@@ -6,7 +6,7 @@ const STATE_FILE = path.join(__dirname, 'bot-state.json');
 
 module.exports = function startBot() {
   const token = process.env.BOT_TOKEN;
-  const url = process.env.WEBAPP_URL;
+  const url = process.env.WEBAPP_URL || process.env.RENDER_EXTERNAL_URL; // Render sets the latter itself
   if (!token) return console.warn('BOT_TOKEN missing, Telegram bot disabled');
   if (!url) return console.warn('WEBAPP_URL missing, Telegram bot disabled');
 

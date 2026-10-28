@@ -5,7 +5,8 @@
   "description": "Telegram WebApp chess with staked matches (demo, mock wallet)",
   "type": "commonjs",
   "scripts": {
-    "start": "node --env-file=.env server.js"
+    "start": "node server.js",
+    "dev": "node --env-file=.env server.js"
   },
   "dependencies": {
     "chess.js": "^1.4.0",

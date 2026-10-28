@@ -273,13 +273,13 @@ $('againBtn').onclick = () => { $('result').classList.add('hidden'); game = null
 const THEMES = {
   green: { bg: '#0f1412', accent: '#7bd88f', ink: '#0b1f12' },
   amber: { bg: '#15110d', accent: '#f0b35a', ink: '#2a1805' },
-  ocean: { bg: '#0b1220', accent: '#5aa9ff', ink: '#04152e' },
+  ocean: { bg: '#0b1220', accent: '#2aabee', ink: '#04152e' },
   violet: { bg: '#120e1c', accent: '#b48cff', ink: '#1c0b3a' },
   rose: { bg: '#1a0e13', accent: '#ff7a9c', ink: '#3a0716' },
 };
-const settings = Object.assign({ theme: 'green', hints: true, sound: true }, (() => { try { return JSON.parse(localStorage.getItem('settings')); } catch { return null; } })());
+const settings = Object.assign({ theme: 'ocean', hints: true, sound: true }, (() => { try { return JSON.parse(localStorage.getItem('settings.v2')); } catch { return null; } })());
 function applySettings() {
-  if (!THEMES[settings.theme]) settings.theme = 'green';
+  if (!THEMES[settings.theme]) settings.theme = 'ocean';
   document.documentElement.dataset.theme = settings.theme;
   const t = THEMES[settings.theme];
   if (tg) { try { tg.setHeaderColor(t.bg); tg.setBackgroundColor(t.bg); } catch {} }
@@ -289,7 +289,7 @@ function applySettings() {
   document.body.classList.toggle('nohints', !settings.hints);
   document.querySelectorAll('#themes .sw').forEach((b) => b.classList.toggle('on', b.dataset.theme === settings.theme));
   $('optHints').checked = settings.hints; $('optSound').checked = settings.sound;
-  try { localStorage.setItem('settings', JSON.stringify(settings)); } catch {}
+  try { localStorage.setItem('settings.v2', JSON.stringify(settings)); } catch {}
 }
 document.querySelectorAll('#themes .sw').forEach((b) => { b.onclick = () => { settings.theme = b.dataset.theme; applySettings(); }; });
 $('optHints').onchange = (e) => { settings.hints = e.target.checked; applySettings(); };

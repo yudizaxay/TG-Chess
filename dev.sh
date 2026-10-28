@@ -3,7 +3,7 @@
 # The bot re-registers its menu button on every start, so a changed URL needs no manual step.
 cd "$(dirname "$0")"
 LOG=$(mktemp)
-cloudflared tunnel --url http://localhost:${PORT:-3000} --no-autoupdate >"$LOG" 2>&1 &
+cloudflared tunnel --url http://localhost:${PORT:-3000} --no-autoupdate --protocol http2 >"$LOG" 2>&1 &
 TUNNEL=$!
 trap 'kill $TUNNEL 2>/dev/null' EXIT
 for _ in $(seq 1 60); do

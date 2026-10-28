@@ -45,7 +45,18 @@ Starts a Cloudflare quick tunnel, then the server with `WEBAPP_URL` pointing at 
 
 Then open the bot in Telegram and send `/start`. After a restart the URL changes, so send a fresh `/start` (old chat buttons point to the old URL).
 
-Without a tunnel: `npm start` serves on `http://localhost:3000`. The bot stays disabled unless `WEBAPP_URL` is set, but the app works in a normal browser as a guest.
+Without a tunnel: `npm run dev` serves on `http://localhost:3000`. The bot stays disabled unless `WEBAPP_URL` is set, but the app works in a normal browser as a guest.
+
+## Deploy on Render (fixed URL)
+
+1. Push this repo to GitHub
+2. Render → **New** → **Web Service** → connect the repo (or **Blueprint** to use `render.yaml`)
+3. Build command `npm install`, start command `npm start`, plan Free
+4. Environment variable: `BOT_TOKEN` (the app picks up its own public URL from `RENDER_EXTERNAL_URL`, so `WEBAPP_URL` is optional)
+5. After deploy, open `https://<service>.onrender.com/health`, it should return `{"ok":true}`, then send `/start` to the bot
+6. Free plan sleeps when idle and the bot uses polling, so keep it awake with an uptime monitor pinging `/health` every 5 minutes
+7. Only one instance may poll a bot token: stop `./dev.sh` locally while Render is live
+8. The free disk is temporary, so `data.json` (balances, history) resets on every redeploy
 
 ## Game flow
 
