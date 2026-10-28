@@ -150,3 +150,4 @@ vite.config.ts.timestamp-*
 
 # runtime data
 data.json
+bot-state.json

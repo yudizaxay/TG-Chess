@@ -1,4 +1,8 @@
+const fs = require('fs');
+const path = require('path');
 const TelegramBot = require('node-telegram-bot-api');
+
+const STATE_FILE = path.join(__dirname, 'bot-state.json');
 
 module.exports = function startBot() {
   const token = process.env.BOT_TOKEN;
@@ -15,7 +19,10 @@ module.exports = function startBot() {
   // Keep the chat clean: send the new reply first (so it always shows), then remove the
   // user's command and the previous bot reply. A chat cleared on the user's side still
   // holds the old message server-side, so editing it in place would be invisible.
-  const lastReply = new Map(); // chatId -> bot message id
+  let saved = {};
+  try { saved = JSON.parse(fs.readFileSync(STATE_FILE, 'utf8')); } catch { /* first run */ }
+  const lastReply = new Map(Object.entries(saved).map(([k, v]) => [Number(k), v])); // chatId -> bot message id
+  const persist = () => fs.writeFile(STATE_FILE, JSON.stringify(Object.fromEntries(lastReply)), () => {});
   const queue = new Map(); // chatId -> promise chain
   const seen = new Set(); // handled message ids (guards against duplicate delivery)
 
@@ -31,6 +38,7 @@ module.exports = function startBot() {
       const stale = [msg.message_id];
       if (lastReply.has(chatId)) stale.push(lastReply.get(chatId));
       lastReply.set(chatId, sent.message_id);
+      persist();
       await bot.deleteMessages(chatId, stale).catch(() => {});
     };
     queue.set(chatId, (queue.get(chatId) || Promise.resolve()).then(run).catch((e) => console.warn('reply:', e.message)));
