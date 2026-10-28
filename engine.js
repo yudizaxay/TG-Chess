@@ -1,4 +1,10 @@
 // Small material + centre-control engine. Deliberately weak so demo users can win.
+// Levels: easy plays near-greedy with many blunders, hard looks one move further ahead.
+const LEVELS = {
+  easy: { rand: 0.4, depth: 0, noise: 80 },
+  medium: { rand: 0.15, depth: 1, noise: 20 },
+  hard: { rand: 0.02, depth: 2, noise: 6 },
+};
 const VAL = { p: 100, n: 320, b: 330, r: 500, q: 900, k: 0 };
 
 function evaluate(chess) {
@@ -23,7 +29,8 @@ function negamax(chess, depth, alpha, beta) {
     return chess.turn() === 'w' ? evaluate(chess) : -evaluate(chess);
   }
   let best = -Infinity;
-  for (const m of chess.moves({ verbose: true })) {
+  const list = chess.moves({ verbose: true }).sort((a, b) => (b.captured ? 1 : 0) - (a.captured ? 1 : 0));
+  for (const m of list) {
     chess.move(m);
     const s = -negamax(chess, depth - 1, -beta, -alpha);
     chess.undo();
@@ -34,15 +41,18 @@ function negamax(chess, depth, alpha, beta) {
   return best;
 }
 
-function pickMove(chess) {
+function pickMove(chess, level = 'medium') {
+  const L = LEVELS[level] || LEVELS.medium;
   const moves = chess.moves({ verbose: true });
   if (!moves.length) return null;
-  if (Math.random() < 0.15) return moves[Math.floor(Math.random() * moves.length)];
+  if (Math.random() < L.rand) return moves[Math.floor(Math.random() * moves.length)];
   let best = null;
   let bestScore = -Infinity;
+  // captures first and a shrinking window at the root keep the deeper levels fast enough for a free host
+  moves.sort((a, b) => (b.captured ? 1 : 0) - (a.captured ? 1 : 0));
   for (const m of moves) {
     chess.move(m);
-    const s = -negamax(chess, 1, -Infinity, Infinity) + (Math.random() * 40 - 20);
+    const s = -negamax(chess, L.depth, -Infinity, -(bestScore - L.noise)) + (Math.random() * 2 * L.noise - L.noise);
     chess.undo();
     if (s > bestScore) { bestScore = s; best = m; }
   }

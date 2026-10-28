@@ -44,11 +44,18 @@ module.exports = function startBot() {
     queue.set(chatId, (queue.get(chatId) || Promise.resolve()).then(run).catch((e) => console.warn('reply:', e.message)));
   }
 
-  bot.onText(/^\/start/, (msg) => reply(
-    msg,
-    '♟ *Chess Arena*\n\nStake a small entry fee, play a match, and claim the pot straight from the game.\n\nNo opponent in 40s? You play our bot.',
-    { parse_mode: 'Markdown' },
-  ));
+  // /start can carry a deep-link parameter (ref_<id> invite, ch_<id> challenge). It is passed to the WebApp as ?sp=
+  const kbFor = (param) => {
+    const u = new URL(url); u.searchParams.set('sp', param);
+    return { inline_keyboard: [[{ text: param.startsWith('ch_') ? '⚔ Accept challenge' : '♟ Play Chess', web_app: { url: u.toString() } }]] };
+  };
+  bot.onText(/^\/start(?:@\w+)?(?:\s+(\w{1,40}))?/, (msg, match) => {
+    const param = match[1] || '';
+    const text = param.startsWith('ch_')
+      ? '⚔ *You have been challenged!*\n\nTap below to accept and play for the pot.'
+      : '♟ *Chess Arena*\n\nStake a small entry fee, play a match, and claim the pot straight from the game.\n\nNo opponent in 40s? You play our bot.';
+    reply(msg, text, { parse_mode: 'Markdown', ...(param ? { reply_markup: kbFor(param) } : {}) });
+  });
 
   bot.onText(/^\/play/, (msg) => reply(msg, 'Ready for a match? Tap below to open the board.'));
 
@@ -60,4 +67,6 @@ module.exports = function startBot() {
 
   bot.on('polling_error', (e) => console.warn('polling:', e.message));
   console.log('Telegram bot polling');
+  // Used by the server to message players who have closed the app (match found, your move, result).
+  return { notify: (chatId, text) => bot.sendMessage(chatId, text, { reply_markup: keyboard }).catch(() => {}) };
 };

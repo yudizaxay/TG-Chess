@@ -10,9 +10,14 @@ Chess inside Telegram. Players connect a TON wallet, stake an entry fee, play a 
 
 - **Telegram bot** with `/start`, `/play`, `/help` and a **Play** menu button that opens the WebApp. Each command removes the user's command and the bot's previous reply, so the chat stays clean
 - **TON Connect**: connect Tonkeeper, Wallet in Telegram or any TON Connect wallet. The address is saved on the player's profile and is required to play
-- **Staked matches**: 1 TON entry (demo balance), pot = 2 × entry, winner claims the pot minus a 5% platform fee. A draw refunds the entry fee
-- **Matchmaking**: waits 40s for a human opponent, otherwise plays against the built-in bot (which stakes too)
-- **Chess**: server-authoritative move validation, check / checkmate / stalemate / draw detection, 5 min clocks, resign, legal-move hints, sound effects
+- **Staked matches**: choose 0.5 / 1 / 5 TON entry (demo balance), pot = 2 × entry, winner claims the pot minus a 5% platform fee. A draw refunds the entry fee. Each stake has its own queue
+- **Matchmaking**: waits 40s for a human opponent, otherwise plays against the built-in bot (which stakes too). Bot level: Easy / Medium / Hard
+- **Challenge a friend**: private match link (`/start ch_<id>`), the friend pays the same stake and the game starts
+- **Invite & referral**: share link gives both players +2 TON when a new user joins
+- **Leaderboard** (Ranks tab) by TON won, **daily bonus** with a streak (1 to 4 TON)
+- **Game extras**: draw offers, rematch, move review after the game, material count, share-your-win button, haptic feedback
+- **Offline notifications**: the bot messages players who closed the app (match found, your move, result, rematch)
+- **Chess**: server-authoritative move validation, check / checkmate / stalemate / draw detection, 5 min clocks, resign, legal-move hints, sound effects, board and piece-set picker (5 piece sets) on the game, search and settings screens
 - **Lobby, History & Income, Settings**: stats, net profit, winnings, fees, win rate, per-game results, wallet info, test-TON faucet
 - **5 themes** (Ocean blue by default, matching Telegram and TON): Ocean, Emerald, Amber, Violet, Rose. A theme restyles the whole app, not just the board
 
@@ -46,6 +51,7 @@ cp .env.example .env     # then set BOT_TOKEN
 | `BOT_TOKEN` | Telegram bot token |
 | `WEBAPP_URL` | Public https URL of this server. Optional on Render (it falls back to `RENDER_EXTERNAL_URL`), set automatically by `dev.sh` |
 | `PORT` | Server port, default `3000` |
+| `BOT_USERNAME` | Bot username used in invite and challenge links, default `ytgchess_bot` |
 
 ## Run locally
 
@@ -75,7 +81,7 @@ Without a tunnel, `npm run dev` serves on `http://localhost:3000`. The bot stays
 | File | Role |
 |---|---|
 | `server.js` | HTTP + WebSocket server, matchmaking, game state, mock wallet and claim logic, persistence |
-| `engine.js` | Weak material-based bot opponent (depth 2, with random blunders) |
+| `engine.js` | Material-based bot opponent with Easy / Medium / Hard levels |
 | `bot.js` | Telegram bot (`/start`, `/play`, `/help`, menu button, chat cleanup) |
 | `public/` | WebApp: `index.html`, `style.css`, `app.js`, `pieces/*.svg`, `ton.svg`, `ton-icon.png`, `vendor/tonconnect-ui.min.js` |
 | `dev.sh` | Local tunnel + server launcher |
@@ -96,6 +102,8 @@ The mock layer is isolated in `server.js` (`fakeHash`, the fee deduction in `joi
 ## Notes
 
 - Telegram `initData` is verified server-side, and the app only works inside Telegram. In a normal browser it shows an "Open in Telegram" screen and the server rejects the connection. For local browser testing, set `ALLOW_GUESTS=1` and open the page with `?guest=1`.
+- Invite and challenge links use `t.me/<bot>?start=<param>`, which opens the bot chat; the bot replies with a button that opens the WebApp with `?sp=<param>`. No extra BotFather setup is needed.
+- The Hard bot thinks for about 0.5 to 1.5 s per move on a laptop and blocks the Node event loop meanwhile; fine for a demo, move it to a worker for real use.
 - Game state lives in memory. A server restart ends running games and drops unclaimed winnings; balances and history are kept in `data.json`.
 - Never commit `.env`. Revoke and rotate the bot token (BotFather → `/revoke`) if it has been shared.
 - Piece artwork: cburnett set by Colin M.L. Burnett (via lichess). Check its licence before production use.

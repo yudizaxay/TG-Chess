@@ -18,6 +18,10 @@
   <div class="hero">
     <div class="hello">Welcome, <b id="userName">Player</b></div>
     <div class="bal"><img src="ton.svg" class="ton-ico" alt="TON"><div class="bal-t"><span>Demo balance</span><b><span id="balance">0.00</span> TON</b></div><div class="bal-s" id="balState">Wallet not connected</div></div>
+    <div id="challengeBox" class="daily hidden"><div><b id="chTitle">Challenge</b><span id="chSub" class="muted small"></span></div><button class="btn small primary" id="chAccept">Accept</button></div>
+    <div id="dailyBox" class="daily hidden"><div><b>Daily bonus</b><span class="muted small" id="dailySub">Claim free test TON</span></div><button class="btn small primary" id="dailyBtn">Claim</button></div>
+    <div class="chips-label">Entry fee</div>
+    <div class="chips" id="stakeChips"></div>
     <div class="pot-preview">
       <div class="label">Win up to</div>
       <div class="big"><span id="prizePreview">0.0190</span> TON</div>
@@ -25,6 +29,12 @@
     </div>
     <button class="btn primary" id="playBtn"><span id="playLbl">Play for</span> <span id="feeBtn">1</span> TON</button>
     <div class="hint">No opponent in 40s? You'll be matched with our bot.</div>
+    <div class="chips-label">Bot level (if no opponent)</div>
+    <div class="chips" id="levelChips"></div>
+    <div class="two">
+      <button class="btn ghost" id="challengeBtn">⚔ Challenge a friend</button>
+      <button class="btn ghost" id="inviteBtn">🎁 Invite · +2 TON</button>
+    </div>
   </div>
   <div class="stats">
     <div class="stat"><b id="sGames">0</b><span>Games</span></div>
@@ -55,6 +65,14 @@
     <h3>All games</h3>
     <div id="historyAll" class="history"><div class="empty">No games yet</div></div>
   </div>
+</section>
+
+<!-- RANKS -->
+<section id="ranksTab" class="screen tab">
+  <header class="top"><div class="brand">Leaderboard</div></header>
+  <div class="income"><div class="label">Your rank</div><div class="big" id="myRank">-</div><div class="sub" id="myRankSub">Play a game to get ranked</div></div>
+  <div class="panel"><h3>Top players <span class="muted small">by TON won</span></h3><div id="lbList" class="history"><div class="empty">No ranked players yet</div></div></div>
+  <div class="panel"><h3>Invites</h3><div class="set-row"><span>Friends joined</span><b id="refCount">0</b></div><div class="set-row"><span>Daily streak</span><b id="streakCount">0 days</b></div></div>
 </section>
 
 <!-- SETTINGS -->
@@ -102,7 +120,8 @@
     <div class="radar"><div></div><div></div><div></div></div>
     <h2>Finding opponent…</h2>
     <div class="count"><span id="countdown">40</span>s</div>
-    <p class="muted">Bot joins if nobody shows up</p>
+    <p class="muted" id="searchNote">Bot joins if nobody shows up</p>
+    <button class="btn primary hidden" id="shareChallenge">Share challenge link</button>
     <button class="btn ghost" id="cancelBtn">Cancel &amp; refund</button>
     <div class="styles">
     <h4>Board</h4><div class="strip boardStrip"></div>
@@ -126,8 +145,10 @@
   </div>
   <div class="gamebar">
     <div class="potbox">Pot <b id="gPot">0.02</b> · Winner <b id="gPrize">0.019</b> TON</div>
-    <button class="btn small danger" id="resignBtn">Resign</button>
+    <div class="gb-btns"><button class="btn small ghost2" id="drawBtn">½ Draw</button><button class="btn small danger" id="resignBtn">Resign</button></div>
   </div>
+  <div id="drawBanner" class="daily hidden"><div><b>Draw offered</b><span class="muted small">Your opponent proposes a draw</span></div><div class="gb-btns"><button class="btn small primary" id="drawYes">Accept</button><button class="btn small ghost2" id="drawNo">Decline</button></div></div>
+  <div id="reviewBar" class="daily hidden"><button class="btn small ghost2" id="rvFirst">⏮</button><button class="btn small ghost2" id="rvPrev">◀</button><b id="rvPos">0 / 0</b><button class="btn small ghost2" id="rvNext">▶</button><button class="btn small ghost2" id="rvLast">⏭</button><button class="btn small primary" id="rvBack">Result</button></div>
   <div class="moves" id="moves"></div>
   <div class="styles">
     <h4>Board</h4><div class="strip boardStrip"></div>
@@ -143,6 +164,9 @@
   <button data-tab="historyTab">
     <svg viewBox="0 0 24 24"><path d="M13 3a9 9 0 1 0 9 9h-2a7 7 0 1 1-2.05-4.95L15 9h7V2l-2.64 2.64A8.96 8.96 0 0 0 13 3zm-1 5v5l4 2.4.8-1.3-3.3-2V8z"/></svg><span>History</span>
   </button>
+  <button data-tab="ranksTab">
+    <svg viewBox="0 0 24 24"><path d="M7 4h10v2h3v3a4 4 0 0 1-4 4h-.3A5 5 0 0 1 13 15.9V18h3v2H8v-2h3v-2.1A5 5 0 0 1 8.3 13H8a4 4 0 0 1-4-4V6h3zm-1 4v1a2 2 0 0 0 1 1.7V8zm12 0h-1v2.7A2 2 0 0 0 18 9z"/></svg><span>Ranks</span>
+  </button>
   <button data-tab="settingsTab">
     <svg viewBox="0 0 24 24"><path d="M19.4 13a7.5 7.5 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a7.4 7.4 0 0 0-1.7-1L15 3.3h-4l-.4 2.6a7.4 7.4 0 0 0-1.7 1l-2.5-1-2 3.5L6.6 11a7.5 7.5 0 0 0 0 2l-2.1 1.6 2 3.5 2.5-1c.5.4 1.1.7 1.7 1l.4 2.6h4l.4-2.6c.6-.3 1.2-.6 1.7-1l2.5 1 2-3.5zM13 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z" transform="translate(-1 0)"/></svg><span>Settings</span>
   </button>
@@ -157,6 +181,9 @@
     <div class="res-amount" id="resAmount"></div>
     <button class="btn primary" id="claimBtn">Claim winnings</button>
     <div class="tx" id="claimTx"></div>
+    <button class="btn primary" id="rematchBtn">Rematch</button>
+    <div class="muted small" id="rematchNote"></div>
+    <div class="two"><button class="btn ghost" id="reviewBtn">Review moves</button><button class="btn ghost" id="shareBtn">Share</button></div>
     <button class="btn ghost" id="againBtn">Back to lobby</button>
   </div>
 </div>
