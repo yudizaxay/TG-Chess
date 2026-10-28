@@ -67,7 +67,8 @@
   </div>
 
   <div class="panel">
-    <h3>Board</h3>
+    <h3>Board &amp; pieces</h3>
+    <h4 class="sub-h">Pieces</h4><div class="strip pieceStrip"></div>
     <div class="set-row"><span>Theme</span>
       <div class="themes" id="themes">
         <button data-theme="ocean" class="sw" title="Ocean" style="--a:#dbe7f5;--b:#5b87c0"></button>
@@ -103,6 +104,10 @@
     <div class="count"><span id="countdown">40</span>s</div>
     <p class="muted">Bot joins if nobody shows up</p>
     <button class="btn ghost" id="cancelBtn">Cancel &amp; refund</button>
+    <div class="styles">
+    <h4>Board</h4><div class="strip boardStrip"></div>
+    <h4>Pieces</h4><div class="strip pieceStrip"></div>
+  </div>
   </div>
 </section>
 
@@ -125,8 +130,8 @@
   </div>
   <div class="moves" id="moves"></div>
   <div class="styles">
-    <h4>Board</h4><div class="strip" id="boardStrip"></div>
-    <h4>Pieces</h4><div class="strip" id="pieceStrip"></div>
+    <h4>Board</h4><div class="strip boardStrip"></div>
+    <h4>Pieces</h4><div class="strip pieceStrip"></div>
   </div>
 </section>
 

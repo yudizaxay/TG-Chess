@@ -287,8 +287,8 @@ function applySettings() {
   if (!PIECES[settings.pieces]) settings.pieces = 'cburnett';
   document.documentElement.dataset.theme = settings.theme;
   document.documentElement.dataset.pieces = settings.pieces;
-  document.querySelectorAll('#boardStrip .opt').forEach((b) => b.classList.toggle('on', b.dataset.k === settings.theme));
-  document.querySelectorAll('#pieceStrip .opt').forEach((b) => b.classList.toggle('on', b.dataset.k === settings.pieces));
+  document.querySelectorAll('.boardStrip .opt').forEach((b) => b.classList.toggle('on', b.dataset.k === settings.theme));
+  document.querySelectorAll('.pieceStrip .opt').forEach((b) => b.classList.toggle('on', b.dataset.k === settings.pieces));
   const t = THEMES[settings.theme];
   if (tg) { try { tg.setHeaderColor(t.bg); tg.setBackgroundColor(t.bg); } catch {} }
   if (tonUI && window.TON_CONNECT_UI) {
@@ -300,10 +300,10 @@ function applySettings() {
   try { localStorage.setItem('settings.v2', JSON.stringify(settings)); } catch {}
 }
 // slider on the game screen: board colours and piece sets
-$('boardStrip').innerHTML = Object.entries(BOARDS).map(([k, [n, a, b]]) => `<button class="opt" data-k="${k}"><i class="prev" style="--a:${a};--b:${b}"></i>${n}</button>`).join('');
-$('pieceStrip').innerHTML = Object.entries(PIECES).map(([k, n]) => `<button class="opt" data-k="${k}"><img src="pieces/${k}/wN.svg" alt="">${n}</button>`).join('');
-$('boardStrip').onclick = (e) => { const b = e.target.closest('.opt'); if (b) { settings.theme = b.dataset.k; applySettings(); } };
-$('pieceStrip').onclick = (e) => { const b = e.target.closest('.opt'); if (b) { settings.pieces = b.dataset.k; applySettings(); } };
+document.querySelectorAll('.boardStrip').forEach((el) => { el.innerHTML = Object.entries(BOARDS).map(([k, [n, a, b]]) => `<button class="opt" data-k="${k}"><i class="prev" style="--a:${a};--b:${b}"></i>${n}</button>`).join(''); });
+document.querySelectorAll('.pieceStrip').forEach((el) => { el.innerHTML = Object.entries(PIECES).map(([k, n]) => `<button class="opt" data-k="${k}"><img src="pieces/${k}/wN.svg" alt="">${n}</button>`).join(''); });
+document.querySelectorAll('.boardStrip').forEach((el) => { el.onclick = (e) => { const b = e.target.closest('.opt'); if (b) { settings.theme = b.dataset.k; applySettings(); } }; });
+document.querySelectorAll('.pieceStrip').forEach((el) => { el.onclick = (e) => { const b = e.target.closest('.opt'); if (b) { settings.pieces = b.dataset.k; applySettings(); } }; });
 document.querySelectorAll('#themes .sw').forEach((b) => { b.onclick = () => { settings.theme = b.dataset.theme; applySettings(); }; });
 $('optHints').onchange = (e) => { settings.hints = e.target.checked; applySettings(); };
 $('optSound').onchange = (e) => { settings.sound = e.target.checked; applySettings(); };
