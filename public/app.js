@@ -239,7 +239,7 @@ function tickClocks() {
     const ms = Math.max(0, g.clocks[c] - (active ? el : 0));
     const s = Math.ceil(ms / 1000), node = $(id);
     node.textContent = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
-    node.classList.toggle('active', active); node.classList.toggle('low', s <= 30);
+    node.classList.toggle('active', active); node.classList.toggle('me', id === 'meClock'); node.classList.toggle('low', s <= 30);
   }
 }
 setInterval(tickClocks, 250);
@@ -279,10 +279,16 @@ const THEMES = {
   violet: { bg: '#120e1c', accent: '#b48cff', ink: '#1c0b3a' },
   rose: { bg: '#1a0e13', accent: '#ff7a9c', ink: '#3a0716' },
 };
-const settings = Object.assign({ theme: 'ocean', hints: true, sound: true }, (() => { try { return JSON.parse(localStorage.getItem('settings.v2')); } catch { return null; } })());
+const BOARDS = { ocean: ['Ocean', '#dbe7f5', '#5b87c0'], green: ['Emerald', '#ebecd0', '#739552'], amber: ['Classic', '#f0d9b5', '#b58863'], violet: ['Violet', '#e6dcf5', '#8a6bc0'], rose: ['Rose', '#f6dde3', '#c0788a'] };
+const PIECES = { cburnett: 'Classic', merida: 'Merida', alpha: 'Alpha', staunty: 'Staunty', anarcandy: 'Candy' };
+const settings = Object.assign({ theme: 'ocean', pieces: 'cburnett', hints: true, sound: true }, (() => { try { return JSON.parse(localStorage.getItem('settings.v2')); } catch { return null; } })());
 function applySettings() {
   if (!THEMES[settings.theme]) settings.theme = 'ocean';
+  if (!PIECES[settings.pieces]) settings.pieces = 'cburnett';
   document.documentElement.dataset.theme = settings.theme;
+  document.documentElement.dataset.pieces = settings.pieces;
+  document.querySelectorAll('#boardStrip .opt').forEach((b) => b.classList.toggle('on', b.dataset.k === settings.theme));
+  document.querySelectorAll('#pieceStrip .opt').forEach((b) => b.classList.toggle('on', b.dataset.k === settings.pieces));
   const t = THEMES[settings.theme];
   if (tg) { try { tg.setHeaderColor(t.bg); tg.setBackgroundColor(t.bg); } catch {} }
   if (tonUI && window.TON_CONNECT_UI) {
@@ -293,6 +299,11 @@ function applySettings() {
   $('optHints').checked = settings.hints; $('optSound').checked = settings.sound;
   try { localStorage.setItem('settings.v2', JSON.stringify(settings)); } catch {}
 }
+// slider on the game screen: board colours and piece sets
+$('boardStrip').innerHTML = Object.entries(BOARDS).map(([k, [n, a, b]]) => `<button class="opt" data-k="${k}"><i class="prev" style="--a:${a};--b:${b}"></i>${n}</button>`).join('');
+$('pieceStrip').innerHTML = Object.entries(PIECES).map(([k, n]) => `<button class="opt" data-k="${k}"><img src="pieces/${k}/wN.svg" alt="">${n}</button>`).join('');
+$('boardStrip').onclick = (e) => { const b = e.target.closest('.opt'); if (b) { settings.theme = b.dataset.k; applySettings(); } };
+$('pieceStrip').onclick = (e) => { const b = e.target.closest('.opt'); if (b) { settings.pieces = b.dataset.k; applySettings(); } };
 document.querySelectorAll('#themes .sw').forEach((b) => { b.onclick = () => { settings.theme = b.dataset.theme; applySettings(); }; });
 $('optHints').onchange = (e) => { settings.hints = e.target.checked; applySettings(); };
 $('optSound').onchange = (e) => { settings.sound = e.target.checked; applySettings(); };
