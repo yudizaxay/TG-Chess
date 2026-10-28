@@ -14,7 +14,7 @@ let guestId = '';
 try { guestId = localStorage.getItem('guestId') || (localStorage.setItem('guestId', Math.random().toString(36).slice(2, 10)), localStorage.getItem('guestId')); } catch { guestId = 'x' + Math.random().toString(36).slice(2, 8); }
 
 let ws, profile, entryFee = 1, houseCut = 0.05, waitMs = 40000, stakes = [0.5, 1, 5], botName = 'ytgchess_bot';
-let reviewIdx = null, challenge = null, challengeAsked = false;
+let reviewIdx = null, challenge = null, challengeAsked = false, autoAccept = false;
 let game = null, gameRecvAt = 0, selected = null, countdownTimer = null;
 let walletMode = null; // 'join' | 'claim'
 let pending = null; // resolver for the next server reply
@@ -37,14 +37,26 @@ function toast(msg) {
 }
 
 // ---------- connection ----------
+let lastRx = Date.now();
 function connect() {
+  if (ws && ws.readyState <= 1) return;
   if (!(tg && tg.initData) && !location.search.includes('guest=1')) { $('openTg').classList.remove('hidden'); return; }
   ws = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`);
   ws.onopen = () => ws.send(JSON.stringify({ t: 'hello', initData: tg ? tg.initData : '', guestId, startParam }));
-  ws.onmessage = (e) => onMessage(JSON.parse(e.data));
+  ws.onmessage = (e) => { lastRx = Date.now(); onMessage(JSON.parse(e.data)); };
   ws.onclose = () => setTimeout(connect, 1500);
 }
 const send = (m) => ws && ws.readyState === 1 && ws.send(JSON.stringify(m));
+// Heartbeat: Telegram can freeze the page while another chat is open, which leaves a dead socket that never reconnects.
+setInterval(() => {
+  if (!ws || ws.readyState !== 1) return connect();
+  if (Date.now() - lastRx > 35000) return ws.close();
+  send({ t: 'ping' });
+}, 10000);
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) return;
+  if (!ws || ws.readyState > 1) connect(); else { lastRx = Math.min(lastRx, Date.now() - 30000); send({ t: 'ping' }); }
+});
 
 function onMessage(m) {
   if (m.t === 'blocked') { $('openTg').classList.remove('hidden'); return; }
@@ -69,6 +81,10 @@ function onMessage(m) {
   } else if (m.t === 'claimed') {
     setProfile(m.profile);
     if (pending) pending(m);
+  } else if (m.t === 'shareId') {
+    try { tg.shareMessage(m.id, (ok) => { if (!ok && ok !== undefined) toast('Share cancelled'); }); } catch { if (shareFallback) shareFallback(); }
+  } else if (m.t === 'shareFail') {
+    if (shareFallback) shareFallback();
   } else if (m.t === 'toast') {
     toast(m.msg);
   } else if (m.t === 'bonus') {
@@ -78,7 +94,7 @@ function onMessage(m) {
   } else if (m.t === 'challenge') {
     challenge = m.expired ? null : m;
     $('challengeBox').classList.toggle('hidden', !challenge);
-    if (challenge) { $('chTitle').textContent = `⚔ ${challenge.name} challenged you`; $('chSub').textContent = `Entry ${fmt(challenge.stake)} TON · winner takes ${fmt(challenge.stake * 2 * (1 - houseCut))}`; }
+    if (challenge) { autoAccept = true; promptAccept(); $('chTitle').textContent = `⚔ ${challenge.name} challenged you`; $('chSub').textContent = `Entry ${fmt(challenge.stake)} TON · winner takes ${fmt(challenge.stake * 2 * (1 - houseCut))}`; }
     else toast('This challenge has expired');
   } else if (m.t === 'rematchOffer') {
     $('rematchNote').textContent = `${m.name} wants a rematch. Tap Rematch to accept.`; hap('notificationOccurred', 'warning');
@@ -162,18 +178,32 @@ $('challengeBtn').onclick = () => {
   if (profile.balance < entryFee) return toast('Insufficient balance');
   openWallet('invite');
 };
+function promptAccept() { // walk the invited player through connect wallet -> pay, so opening the link is enough
+  if (!challenge) return;
+  if (!tonAddr) return tonUI && tonUI.openModal();
+  autoAccept = false;
+  if (profile.balance < challenge.stake) return toast('Insufficient balance. Get test TON in Settings.');
+  openWallet('accept', challenge.stake);
+}
 $('chAccept').onclick = () => {
   if (!tonAddr) return tonUI ? tonUI.openModal() : toast('TON Connect failed to load');
   if (profile.balance < challenge.stake) return toast('Insufficient balance');
   openWallet('accept', challenge.stake);
 };
 $('dailyBtn').onclick = () => send({ t: 'daily' });
+// Prefer Telegram's rich share (photo + Play button); fall back to a plain link share on older clients or on any error.
+let shareFallback = null;
+function shareRich(kind, amount, link, text) {
+  shareFallback = () => shareLink(link, text);
+  if (tg && tg.shareMessage && tg.isVersionAtLeast && tg.isVersionAtLeast('8.0')) send({ t: 'sharePrep', kind, amount });
+  else shareFallback();
+}
 function shareLink(link, text) {
   const url = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(text)}`;
   if (tg && tg.openTelegramLink) tg.openTelegramLink(url); else window.open(url, '_blank');
 }
-$('inviteBtn').onclick = () => shareLink(`https://t.me/${botName}?start=ref_${profile.id}`, '♟ Play chess for TON with me on Chess Arena. Join through my link and we both get +2 TON.');
-$('shareChallenge').onclick = () => shareLink(`https://t.me/${botName}?start=ch_${profile.id}`, `⚔ I challenge you to a chess match on Chess Arena. Entry ${entryFee} TON, winner takes the pot.`);
+$('inviteBtn').onclick = () => shareRich('invite', 0, `https://t.me/${botName}?start=ref_${profile.id}`, '♟ Play chess for TON with me on Chess Arena. Join through my link and we both get +2 TON.');
+$('shareChallenge').onclick = () => shareRich('challenge', 0, `https://t.me/${botName}?start=ch_${profile.id}`, `⚔ I challenge you to a chess match on Chess Arena. Entry ${entryFee} TON, winner takes the pot.`);
 $('walletReject').onclick = closeWallet;
 $('walletConfirm').onclick = async () => {
   const mode = walletMode;
@@ -352,7 +382,7 @@ const rvGo = (i) => { reviewIdx = Math.max(0, Math.min(game.review.fens.length -
 $('rvFirst').onclick = () => rvGo(0); $('rvPrev').onclick = () => rvGo(reviewIdx - 1);
 $('rvNext').onclick = () => rvGo(reviewIdx + 1); $('rvLast').onclick = () => rvGo(1e6);
 $('rvBack').onclick = () => { reviewIdx = null; render(); $('result').classList.remove('hidden'); };
-$('shareBtn').onclick = () => shareLink(`https://t.me/${botName}?start=ref_${profile.id}`, `🏆 I just won ${fmt(game.claim ? game.claim.amount : 0)} TON on Chess Arena! Think you can beat me?`);
+$('shareBtn').onclick = () => { const amt = game.claim ? game.claim.amount : 0; shareRich('win', amt, `https://t.me/${botName}?start=ref_${profile.id}`, `🏆 I just won ${fmt(amt)} TON on Chess Arena! Think you can beat me?`); };
 $('claimBtn').onclick = () => openWallet('claim', game.claim.amount);
 $('againBtn').onclick = () => { $('result').classList.add('hidden'); game = null; reviewIdx = null; send({ t: 'profile' }); show('lobby'); };
 
@@ -454,6 +484,7 @@ function initTon() {
     tonReady = true;
     updateWalletUI();
     send({ t: 'wallet', address: tonAddr });
+    if (autoAccept && tonAddr) setTimeout(promptAccept, 600);
   });
 }
 applySettings();

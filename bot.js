@@ -26,6 +26,9 @@ module.exports = function startBot() {
   const queue = new Map(); // chatId -> promise chain
   const seen = new Set(); // handled message ids (guards against duplicate delivery)
 
+  const BANNER = path.join(__dirname, 'public', 'banner.jpg');
+  let bannerId = null; // Telegram file_id after the first upload, so later sends skip the upload
+
   function reply(msg, text, extra = {}) {
     const chatId = msg.chat.id;
     const key = `${chatId}:${msg.message_id}`;
@@ -34,7 +37,15 @@ module.exports = function startBot() {
     console.log(`cmd ${JSON.stringify(msg.text)} chat=${chatId} msg=${msg.message_id}`);
 
     const run = async () => {
-      const sent = await bot.sendMessage(chatId, text, { reply_markup: keyboard, ...extra });
+      const { photo, ...opts } = extra;
+      let sent;
+      if (photo) {
+        sent = await bot.sendPhoto(chatId, bannerId || fs.createReadStream(BANNER), { caption: text, reply_markup: keyboard, ...opts })
+          .catch(() => bot.sendMessage(chatId, text, { reply_markup: keyboard, ...opts })); // fall back to plain text
+        if (sent.photo) bannerId = sent.photo[sent.photo.length - 1].file_id;
+      } else {
+        sent = await bot.sendMessage(chatId, text, { reply_markup: keyboard, ...opts });
+      }
       const stale = [msg.message_id];
       if (lastReply.has(chatId)) stale.push(lastReply.get(chatId));
       lastReply.set(chatId, sent.message_id);
@@ -54,7 +65,7 @@ module.exports = function startBot() {
     const text = param.startsWith('ch_')
       ? '⚔ *You have been challenged!*\n\nTap below to accept and play for the pot.'
       : '♟ *Chess Arena*\n\nStake a small entry fee, play a match, and claim the pot straight from the game.\n\nNo opponent in 40s? You play our bot.';
-    reply(msg, text, { parse_mode: 'Markdown', ...(param ? { reply_markup: kbFor(param) } : {}) });
+    reply(msg, text, { parse_mode: 'Markdown', photo: true, ...(param ? { reply_markup: kbFor(param) } : {}) });
   });
 
   bot.onText(/^\/play/, (msg) => reply(msg, 'Ready for a match? Tap below to open the board.'));

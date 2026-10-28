@@ -88,6 +88,33 @@ function leaderboard(uid) {
   };
 }
 
+// Rich share card: a photo message with a Play button, shared through Telegram's own share dialog
+// (Bot API savePreparedInlineMessage + WebApp.shareMessage). The banner is fetched by Telegram from this server.
+async function prepareShare(uid, kind, amount) {
+  const base = (process.env.WEBAPP_URL || process.env.RENDER_EXTERNAL_URL || '').replace(/\/$/, '');
+  if (!BOT_TOKEN || !base || !uid.startsWith('tg')) return null;
+  const link = `https://t.me/${BOT_USERNAME}?start=${kind === 'challenge' ? 'ch' : 'ref'}_${uid}`;
+  const caption = {
+    win: `🏆 I just won ${round4(Number(amount) || 0)} TON on Chess Arena! Think you can beat me?`,
+    challenge: '⚔ I challenge you to a chess match on Chess Arena. Winner takes the pot!',
+    invite: '♟ Play chess for TON with me on Chess Arena. Join through my link and we both get +2 TON.',
+  }[kind] || '♟ Play chess on Chess Arena';
+  const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/savePreparedInlineMessage`, {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      user_id: Number(uid.slice(2)),
+      result: {
+        type: 'photo', id: `${kind}-${Date.now()}`, title: 'Chess Arena',
+        photo_url: `${base}/banner.jpg`, thumbnail_url: `${base}/banner.jpg`, photo_width: 1280, photo_height: 712,
+        caption, reply_markup: { inline_keyboard: [[{ text: kind === 'challenge' ? '⚔ Accept challenge' : '♟ Play Chess', url: link }]] },
+      },
+      allow_user_chats: true, allow_group_chats: true, allow_bot_chats: false, allow_channel_chats: false,
+    }),
+  }).then((r) => r.json());
+  if (!res.ok) throw new Error(res.description);
+  return res.result.id;
+}
+
 // ---- matchmaking ----
 const queues = new Map(); // stake -> { uid, stake, level, endsAt, timer } (public queue, one waiter per stake)
 const challenges = new Map(); // host uid -> { uid, stake, level, endsAt, timer } (private, waits for a friend)
@@ -355,8 +382,16 @@ wss.on('connection', (ws) => {
     if (m.t === 'accept') return acceptChallenge(uid, String(m.host || ''));
     if (m.t === 'challengeInfo') {
       const ch = challenges.get(String(m.host || ''));
+      if (ch) send(ch.uid, { t: 'toast', msg: `${users[uid].name} opened your challenge` });
       return send(uid, ch ? { t: 'challenge', host: ch.uid, name: users[ch.uid].name, stake: ch.stake } : { t: 'challenge', expired: true });
     }
+    if (m.t === 'sharePrep') {
+      prepareShare(uid, String(m.kind), m.amount)
+        .then((id) => send(uid, id ? { t: 'shareId', id } : { t: 'shareFail' }))
+        .catch((e) => { console.warn('share:', e.message); send(uid, { t: 'shareFail' }); });
+      return;
+    }
+    if (m.t === 'ping') return ws.send(JSON.stringify({ t: 'pong' }));
     if (m.t === 'lb') return send(uid, leaderboard(uid));
     if (m.t === 'daily') {
       const u = users[uid];

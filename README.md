@@ -16,6 +16,7 @@ Chess inside Telegram. Players connect a TON wallet, stake an entry fee, play a 
 - **Invite & referral**: share link gives both players +2 TON when a new user joins
 - **Leaderboard** (Ranks tab) by TON won, **daily bonus** with a streak (1 to 4 TON)
 - **Game extras**: draw offers, rematch, move review after the game, material count, share-your-win button, haptic feedback
+- **Banner image**: the welcome message and the share cards (win, invite, challenge) carry `public/banner.jpg`. Sharing uses Telegram's own share dialog (Bot API 8.0 prepared messages) and falls back to a plain link on older clients
 - **Offline notifications**: the bot messages players who closed the app (match found, your move, result, rematch)
 - **Chess**: server-authoritative move validation, check / checkmate / stalemate / draw detection, 5 min clocks, resign, legal-move hints, sound effects, board and piece-set picker (5 piece sets) on the game, search and settings screens
 - **Lobby, History & Income, Settings**: stats, net profit, winnings, fees, win rate, per-game results, wallet info, test-TON faucet
@@ -83,7 +84,7 @@ Without a tunnel, `npm run dev` serves on `http://localhost:3000`. The bot stays
 | `server.js` | HTTP + WebSocket server, matchmaking, game state, mock wallet and claim logic, persistence |
 | `engine.js` | Material-based bot opponent with Easy / Medium / Hard levels |
 | `bot.js` | Telegram bot (`/start`, `/play`, `/help`, menu button, chat cleanup) |
-| `public/` | WebApp: `index.html`, `style.css`, `app.js`, `pieces/*.svg`, `ton.svg`, `ton-icon.png`, `vendor/tonconnect-ui.min.js` |
+| `public/` | WebApp: `index.html`, `style.css`, `app.js`, `banner.jpg`, `pieces/`, `ton.svg`, `ton-icon.png`, `vendor/tonconnect-ui.min.js` |
 | `dev.sh` | Local tunnel + server launcher |
 | `render.yaml` | Render blueprint |
 | `data.json` | Runtime only: balances, stats, history, wallet addresses (gitignored) |
