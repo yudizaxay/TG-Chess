@@ -241,7 +241,8 @@ wss.on('connection', (ws) => {
 
     if (m.t === 'hello') {
       const tgUser = verifyInitData(m.initData);
-      // Demo only: unsigned guests allowed so the app can be tested in a plain browser.
+      // Only Telegram sessions are accepted. Set ALLOW_GUESTS=1 to test in a plain browser.
+      if (!tgUser && process.env.ALLOW_GUESTS !== '1') return ws.send(JSON.stringify({ t: 'blocked' }));
       const id = tgUser ? `tg${tgUser.id}` : `guest${String(m.guestId || '').replace(/\W/g, '').slice(0, 16) || 'x'}`;
       const name = tgUser ? (tgUser.first_name || tgUser.username || 'Player') : `Guest ${id.slice(-4)}`;
       uid = id;

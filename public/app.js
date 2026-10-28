@@ -34,6 +34,7 @@ function toast(msg) {
 
 // ---------- connection ----------
 function connect() {
+  if (!(tg && tg.initData) && !location.search.includes('guest=1')) { $('openTg').classList.remove('hidden'); return; }
   ws = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`);
   ws.onopen = () => ws.send(JSON.stringify({ t: 'hello', initData: tg ? tg.initData : '', guestId }));
   ws.onmessage = (e) => onMessage(JSON.parse(e.data));
@@ -42,6 +43,7 @@ function connect() {
 const send = (m) => ws && ws.readyState === 1 && ws.send(JSON.stringify(m));
 
 function onMessage(m) {
+  if (m.t === 'blocked') { $('openTg').classList.remove('hidden'); return; }
   if (m.t === 'profile') {
     entryFee = m.entryFee; houseCut = m.houseCut; waitMs = m.waitMs;
     setProfile(m.profile);
