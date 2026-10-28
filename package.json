@@ -1,0 +1,19 @@
+{
+  "name": "tg-chess",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Telegram WebApp chess with staked matches (demo, mock wallet)",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node --env-file=.env server.js"
+  },
+  "dependencies": {
+    "chess.js": "^1.4.0",
+    "express": "^5.3.0",
+    "node-telegram-bot-api": "^0.66.0",
+    "ws": "^8.22.0"
+  },
+  "engines": {
+    "node": ">=20.6"
+  }
+}
