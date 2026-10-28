@@ -302,6 +302,21 @@ function applySettings() {
 // slider on the game screen: board colours and piece sets
 document.querySelectorAll('.boardStrip').forEach((el) => { el.innerHTML = Object.entries(BOARDS).map(([k, [n, a, b]]) => `<button class="opt" data-k="${k}"><i class="prev" style="--a:${a};--b:${b}"></i>${n}</button>`).join(''); });
 document.querySelectorAll('.pieceStrip').forEach((el) => { el.innerHTML = Object.entries(PIECES).map(([k, n]) => `<button class="opt" data-k="${k}"><img src="pieces/${k}/wN.svg" alt="">${n}</button>`).join(''); });
+// make every strip scrollable on desktop too: wheel, drag, and arrow buttons
+document.querySelectorAll('.strip').forEach((el) => {
+  const wrap = document.createElement('div'); wrap.className = 'strip-wrap';
+  el.parentNode.insertBefore(wrap, el); wrap.appendChild(el);
+  for (const [cls, ch, dir] of [['l', '‹', -1], ['r', '›', 1]]) {
+    const a = document.createElement('button'); a.className = 'arr ' + cls; a.textContent = ch;
+    a.onclick = () => el.scrollBy({ left: dir * 180, behavior: 'smooth' }); wrap.appendChild(a);
+  }
+  el.addEventListener('wheel', (e) => { if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) { el.scrollLeft += e.deltaY; e.preventDefault(); } }, { passive: false });
+  let sx = 0, sl = 0, down = false, moved = false;
+  el.addEventListener('pointerdown', (e) => { if (e.pointerType === 'touch') return; down = true; moved = false; sx = e.clientX; sl = el.scrollLeft; });
+  window.addEventListener('pointermove', (e) => { if (!down) return; const dx = e.clientX - sx; if (Math.abs(dx) > 4) { moved = true; el.classList.add('drag'); } if (moved) el.scrollLeft = sl - dx; });
+  window.addEventListener('pointerup', () => { down = false; el.classList.remove('drag'); });
+  el.addEventListener('click', (e) => { if (moved) { e.stopPropagation(); e.preventDefault(); moved = false; } }, true);
+});
 document.querySelectorAll('.boardStrip').forEach((el) => { el.onclick = (e) => { const b = e.target.closest('.opt'); if (b) { settings.theme = b.dataset.k; applySettings(); } }; });
 document.querySelectorAll('.pieceStrip').forEach((el) => { el.onclick = (e) => { const b = e.target.closest('.opt'); if (b) { settings.pieces = b.dataset.k; applySettings(); } }; });
 document.querySelectorAll('#themes .sw').forEach((b) => { b.onclick = () => { settings.theme = b.dataset.theme; applySettings(); }; });
