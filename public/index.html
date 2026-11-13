@@ -15,9 +15,22 @@
     <div class="brand"><span class="logo"><img src="pieces/wN.svg" alt=""></span>Chess Arena</div>
     <div id="tonBtn"></div>
   </header>
+  <!-- shown instead of the lobby until KYC is approved -->
+  <div id="gate" class="gate hidden">
+    <div class="gate-ico" id="gateIco">🔐</div>
+    <h2 id="gateTitle">Verify your identity</h2>
+    <p class="muted" id="gateSub">One quick check before you can connect a wallet and play for TON.</p>
+    <ol class="steps">
+      <li id="st1" class="cur"><i>1</i><span>Verify your identity</span><em id="st1s">Next</em></li>
+      <li id="st2"><i>2</i><span>Connect your TON wallet</span></li>
+      <li id="st3"><i>3</i><span>Play and win TON</span></li>
+    </ol>
+    <button class="btn primary" id="kycOpen">Start verification</button>
+    <div class="muted small" id="gateNote">Takes about 2 minutes</div>
+  </div>
+  <div id="lobbyMain">
   <div class="hero">
     <div class="hello">Welcome, <b id="userName">Player</b> <span class="kbadge" id="kBadge"></span></div>
-    <div id="kycCard" class="daily hidden"><div><b id="kycTitle">Verify your identity</b><span class="muted small" id="kycSub">KYC is required before you can connect a wallet and play</span></div><button class="btn small primary" id="kycOpen">Start</button></div>
     <div class="bal"><img src="ton.svg" class="ton-ico" alt="TON"><div class="bal-t"><span>Demo balance</span><b><span id="balance">0.00</span> TON</b></div><div class="bal-s" id="balState">Wallet not connected</div></div>
     <div id="challengeBox" class="daily hidden"><div><b id="chTitle">Challenge</b><span id="chSub" class="muted small"></span></div><button class="btn small primary" id="chAccept">Accept</button></div>
     <div id="dailyBox" class="daily hidden"><div><b>Daily bonus</b><span class="muted small" id="dailySub">Claim free test TON</span></div><button class="btn small primary" id="dailyBtn">Claim</button></div>
@@ -45,6 +58,7 @@
   <div class="panel">
     <h3>Recent games <a class="link" id="seeAll">See all</a></h3>
     <div id="history" class="history"><div class="empty">No games yet</div></div>
+  </div>
   </div>
 </section>
 

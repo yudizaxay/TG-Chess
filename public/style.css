@@ -284,3 +284,18 @@ html[data-pieces=anarcandy] .pc.bP { background-image: url(pieces/anarcandy/bP.s
 .kbadge.no { background: rgba(255,107,122,.14); color: var(--danger); cursor: pointer; }
 .pinfo .kbadge { margin: 3px 0 2px; align-self: flex-start; }
 .vt { color: #4cd08a; font-size: 12px; margin-left: 3px; }
+
+/* KYC gate: the only thing a new player sees on the home screen */
+.gate { text-align: center; padding: 26px 6px 10px; display: flex; flex-direction: column; align-items: center; }
+.gate-ico { width: 84px; height: 84px; border-radius: 26px; display: grid; place-items: center; font-size: 40px; background: rgba(var(--accent-rgb), .14); border: 1px solid rgba(var(--accent-rgb), .35); margin-bottom: 14px; }
+.gate h2 { margin: 0 0 6px; font-size: 22px; }
+.gate p { margin: 0 8px 20px; max-width: 320px; line-height: 1.45; }
+.steps { list-style: none; margin: 0 0 22px; padding: 0; width: 100%; max-width: 340px; display: flex; flex-direction: column; gap: 8px; text-align: left; }
+.steps li { display: flex; align-items: center; gap: 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; color: var(--muted); }
+.steps li i { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font: 700 13px system-ui; font-style: normal; background: var(--panel2); flex: none; }
+.steps li span { flex: 1; font-weight: 600; }
+.steps li em { font: 600 11px system-ui; font-style: normal; color: var(--muted); }
+.steps li.cur { color: var(--text); border-color: var(--accent); } .steps li.cur i { background: var(--accent); color: var(--ink, #04152e); }
+.steps li.warn { border-color: var(--danger); } .steps li.warn i { background: var(--danger); color: #fff; }
+.gate .btn { max-width: 340px; }
+.gate .muted.small { margin-top: 10px; }

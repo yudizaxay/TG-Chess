@@ -413,10 +413,17 @@ function renderKyc() {
   const st = kycStatus(), reason = profile.kyc.reason;
   const bt = { approved: ['✓ Verified', 'ok'], pending: ['⏳ KYC in review', 'pend'], rejected: ['✖ KYC rejected', 'no'], none: ['KYC needed', 'no'] }[st];
   for (const id of ['kBadge', 'sBadge']) { const el = $(id); el.textContent = bt[0]; el.className = `kbadge ${bt[1]}`; el.onclick = st === 'approved' ? null : openKyc; }
-  $('kycCard').classList.toggle('hidden', st === 'approved');
-  $('kycTitle').textContent = { none: 'Verify your identity', pending: 'Verification in review', rejected: 'Verification not approved' }[st] || '';
-  $('kycSub').textContent = { none: 'KYC is required before you can connect a wallet and play', pending: 'We will notify you when it is approved', rejected: reason || 'Tap to fix and submit again' }[st] || '';
-  $('kycOpen').textContent = { none: 'Start', pending: 'Status', rejected: 'Fix' }[st] || '';
+  // until verified, the home screen is just the KYC gate: no balance, stakes or stats
+  $('gate').classList.toggle('hidden', st === 'approved'); $('lobbyMain').classList.toggle('hidden', st !== 'approved');
+  const gt = {
+    none: ['🔐', 'Verify your identity', 'One quick check before you can connect a wallet and play for TON.', 'Start verification', 'Takes about 2 minutes', 'Next', 'cur'],
+    pending: ['⏳', 'Verification in review', 'Our team is checking your documents. We will message you here as soon as it is done.', 'View status', 'Usually quick, you can close the app', 'In review', 'cur'],
+    rejected: ['❌', 'Verification not approved', reason || 'Please check your documents and submit again.', 'Fix and resubmit', 'You can try again', 'Action needed', 'warn'],
+  }[st];
+  if (gt) {
+    $('gateIco').textContent = gt[0]; $('gateTitle').textContent = gt[1]; $('gateSub').textContent = gt[2];
+    $('kycOpen').textContent = gt[3]; $('gateNote').textContent = gt[4]; $('st1s').textContent = gt[5]; $('st1').className = gt[6];
+  }
   $('setKyc').textContent = { none: 'Not verified', pending: 'In review', approved: 'Verified ✅', rejected: 'Rejected' }[st];
   $('tonBtn').style.display = st === 'approved' ? '' : 'none'; // wallet connect only after KYC
   if (prevKyc && prevKyc !== 'approved' && st === 'approved') { toast('Identity verified ✅ You can connect your wallet now'); hap('notificationOccurred', 'success'); }
