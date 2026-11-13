@@ -4,92 +4,305 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
+<meta name="color-scheme" content="light dark">
 <title>Chess Arena Admin</title>
+<link rel="icon" href="/admin/logo.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
 <style>
-:root { --bg:#0b1220; --panel:#121a2c; --panel2:#18223a; --line:#24304d; --text:#e8eefc; --muted:#8c9bbd; --accent:#2aabee; --ok:#4cd08a; --warn:#f0b35a; --bad:#ff6b7a; }
+:root {
+  --bg:#f3f5f2; --surface:#fff; --sunken:#f6f8f5; --line:#e4e9e1; --ink:#14201a; --muted:#6b7a70;
+  --brand:#2f6b3f; --brand-soft:#e3f0e6; --brand-ink:#fff; --light-sq:#eeeed2; --dark-sq:#769656;
+  --ok:#1f7a46; --ok-bg:#e0f3e7; --warn:#8a5a00; --warn-bg:#fbefd0; --bad:#b4283a; --bad-bg:#fbe3e6; --info:#2a5d8f; --info-bg:#e1ecf7;
+  --side:#0f2318; --side-ink:#c9dccf; --side-dim:#7f9a88; --side-on:rgba(255,255,255,.1);
+  --shadow:0 1px 2px rgba(20,34,22,.05);
+  --hero-a:#173a24; --hero-b:#2f6b3f;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg:#0b100c; --surface:#141b15; --sunken:#101611; --line:#243026; --ink:#e7efe8; --muted:#8fa294;
+  --brand:#86b992; --brand-soft:#1b2c1f; --brand-ink:#0c160e; --light-sq:#2b3a2d; --dark-sq:#4a6b50;
+  --ok:#69d391; --ok-bg:#15301f; --warn:#f0c067; --warn-bg:#33270c; --bad:#ff8c9a; --bad-bg:#3a1a20; --info:#8ab9ec; --info-bg:#172a40;
+  --side:#08100a; --shadow:none; --hero-a:#10261a; --hero-b:#23472d;
+} }
+:root[data-theme="dark"] {
+  --bg:#0b100c; --surface:#141b15; --sunken:#101611; --line:#243026; --ink:#e7efe8; --muted:#8fa294;
+  --brand:#86b992; --brand-soft:#1b2c1f; --brand-ink:#0c160e; --light-sq:#2b3a2d; --dark-sq:#4a6b50;
+  --ok:#69d391; --ok-bg:#15301f; --warn:#f0c067; --warn-bg:#33270c; --bad:#ff8c9a; --bad-bg:#3a1a20; --info:#8ab9ec; --info-bg:#172a40;
+  --side:#08100a; --shadow:none; --hero-a:#10261a; --hero-b:#23472d;
+}
 * { box-sizing: border-box; }
-body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 20px; border-bottom: 1px solid var(--line); background: var(--panel); position: sticky; top: 0; z-index: 5; flex-wrap: wrap; }
-.brand { font-weight: 700; font-size: 16px; display: flex; gap: 8px; align-items: center; }
-.brand i { width: 26px; height: 26px; border-radius: 8px; background: var(--accent); display: inline-grid; place-items: center; color: #04152e; font-style: normal; }
-nav { display: flex; gap: 4px; flex-wrap: wrap; }
-nav button { background: none; border: 0; color: var(--muted); padding: 8px 14px; border-radius: 10px; font: 600 13px system-ui; cursor: pointer; }
-nav button.on { background: var(--panel2); color: var(--text); }
-nav .n { background: var(--bad); color: #fff; border-radius: 9px; padding: 0 6px; margin-left: 6px; font-size: 11px; }
-main { max-width: 1180px; margin: 0 auto; padding: 20px; }
-.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; }
-.card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; }
-.card .k { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .06em; }
-.card .v { font-size: 26px; font-weight: 700; margin-top: 4px; }
-.card .s { color: var(--muted); font-size: 12px; margin-top: 2px; }
-h2 { font-size: 15px; margin: 26px 0 10px; }
-.bars { display: flex; align-items: flex-end; gap: 10px; height: 110px; padding: 6px 0; }
-.bar { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 4px; height: 100%; font-size: 11px; color: var(--muted); }
-.bar div { width: 100%; background: var(--accent); border-radius: 6px 6px 0 0; min-height: 2px; }
-.tablewrap { overflow-x: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; }
-table { width: 100%; border-collapse: collapse; min-width: 720px; }
-th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; }
-th { color: var(--muted); font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }
-tr:last-child td { border-bottom: 0; }
-tr.click { cursor: pointer; } tr.click:hover td { background: var(--panel2); }
-.pill { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; background: var(--panel2); color: var(--muted); }
-.pill.approved, .pill.on { background: #123826; color: var(--ok); }
-.pill.pending { background: #3a2c12; color: var(--warn); }
-.pill.rejected, .pill.banned { background: #3a1820; color: var(--bad); }
-.mono { font-family: ui-monospace, Menlo, monospace; font-size: 12px; }
+[hidden] { display: none !important; }
+html, body { height: 100%; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.5 Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; -webkit-font-smoothing: antialiased; font-feature-settings: "tnum", "cv11"; }
+button, input, select, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.mono { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12px; }
 .muted { color: var(--muted); }
 .pos { color: var(--ok); } .neg { color: var(--bad); }
-.bar-tools { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
-input, select, textarea { background: var(--panel); border: 1px solid var(--line); color: var(--text); border-radius: 10px; padding: 9px 12px; font: inherit; }
-textarea { width: 100%; resize: vertical; }
-button.b { border: 0; border-radius: 10px; padding: 9px 16px; font: 600 13px system-ui; cursor: pointer; background: var(--panel2); color: var(--text); }
-button.b.ok { background: var(--ok); color: #05210f; } button.b.bad { background: var(--bad); color: #2a0509; } button.b.acc { background: var(--accent); color: #04152e; }
-.modal { position: fixed; inset: 0; background: #000b; display: none; align-items: flex-start; justify-content: center; padding: 28px 14px; overflow-y: auto; z-index: 20; }
-.modal.on { display: flex; }
-.sheet { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; width: 100%; max-width: 820px; padding: 20px; }
-.sheet h3 { margin: 0 0 4px; }
-.kv { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px 18px; margin: 14px 0; }
-.kv span { display: block; color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; }
-.imgs { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin: 12px 0; }
-.imgs figure { margin: 0; } .imgs img { width: 100%; border-radius: 10px; border: 1px solid var(--line); background: #000; cursor: zoom-in; }
-.imgs figcaption { color: var(--muted); font-size: 12px; margin-top: 4px; }
-.actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; margin-top: 14px; }
-.actions .grow { flex: 1; min-width: 220px; }
-.note { background: var(--panel2); border-radius: 10px; padding: 10px 12px; color: var(--muted); font-size: 12.5px; margin-top: 12px; }
-.empty { text-align: center; padding: 28px; color: var(--muted); }
-#toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--panel2); border: 1px solid var(--line); padding: 10px 16px; border-radius: 12px; display: none; z-index: 40; }
+svg.i { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+/* ---------- login ---------- */
+.login { min-height: 100%; display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); }
+.board { position: relative; display: grid; place-items: center; padding: 32px; overflow: hidden;
+  background: conic-gradient(var(--dark-sq) 25%, var(--light-sq) 0 50%, var(--dark-sq) 0 75%, var(--light-sq) 0) 0 0 / 160px 160px; }
+.board::after { content: ""; position: absolute; inset: 0; background: radial-gradient(ellipse at center, rgba(0,0,0,0) 30%, rgba(10,20,12,.5)); }
+.board .mark { position: relative; z-index: 1; text-align: center; color: #fff; text-shadow: 0 2px 18px rgba(0,0,0,.45); }
+.board .mark img { width: 150px; height: 150px; filter: drop-shadow(0 12px 18px rgba(0,0,0,.4)); }
+.board .mark h1 { margin: 10px 0 4px; font-size: 32px; letter-spacing: -.03em; }
+.board .mark p { margin: 0; opacity: .92; }
+.panel { display: grid; place-items: center; padding: 32px 24px; background: var(--surface); }
+.panel form { width: 100%; max-width: 340px; }
+.panel h2 { margin: 0 0 4px; font-size: 26px; letter-spacing: -.03em; }
+.panel p.sub { margin: 0 0 22px; color: var(--muted); }
+label.f { display: block; margin-bottom: 14px; font-weight: 600; font-size: 13px; }
+label.f input { display: block; width: 100%; margin-top: 6px; padding: 11px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--sunken); font-weight: 400; }
+label.f input:focus { border-color: var(--brand); background: var(--surface); outline: 0; box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 25%, transparent); }
+.pw { position: relative; } .pw button { position: absolute; right: 6px; bottom: 5px; background: none; border: 0; color: var(--muted); padding: 6px 8px; cursor: pointer; border-radius: 8px; font-size: 12px; font-weight: 600; }
+.err { min-height: 20px; color: var(--bad); font-size: 13px; margin: 2px 0 10px; }
+.disabled-note { background: var(--warn-bg); color: var(--warn); border-radius: 10px; padding: 12px 14px; font-size: 13px; margin-bottom: 14px; }
+
+/* ---------- buttons ---------- */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px; border: 1px solid var(--line); background: var(--surface); border-radius: 10px; padding: 8px 14px; font-weight: 600; font-size: 13px; cursor: pointer; transition: background .15s, transform .05s; white-space: nowrap; }
+.btn:hover { background: var(--sunken); } .btn:active { transform: translateY(1px); }
+.btn.primary { background: var(--brand); border-color: var(--brand); color: var(--brand-ink); } .btn.primary:hover { background: var(--brand); filter: brightness(1.08); }
+.btn.ok { background: var(--ok); border-color: var(--ok); color: #fff; } .btn.ok:hover { background: var(--ok); filter: brightness(1.08); }
+.btn.danger { color: var(--bad); border-color: color-mix(in srgb, var(--bad) 40%, var(--line)); }
+.btn.danger.solid { background: var(--bad); color: #fff; border-color: var(--bad); }
+.btn.block { width: 100%; padding: 11px; font-size: 14px; }
+.btn:disabled { opacity: .55; cursor: default; }
+.btn.sm { padding: 5px 10px; font-size: 12px; border-radius: 8px; }
+.btn.icon { padding: 8px; width: 36px; height: 36px; }
+
+/* ---------- shell ---------- */
+.shell { min-height: 100%; display: grid; grid-template-columns: 248px minmax(0, 1fr); }
+aside.side { background: var(--side); color: var(--side-ink); padding: 20px 14px; display: flex; flex-direction: column; gap: 4px; position: sticky; top: 0; height: 100vh; }
+.brand { display: flex; align-items: center; gap: 11px; padding: 2px 8px 22px; color: #fff; font-weight: 700; letter-spacing: -.01em; font-size: 15px; }
+.brand .sq { width: 38px; height: 38px; border-radius: 10px; display: grid; place-items: center; background: conic-gradient(var(--dark-sq) 25%, var(--light-sq) 0 50%, var(--dark-sq) 0 75%, var(--light-sq) 0) 0 0 / 19px 19px; }
+.brand .sq img { width: 29px; height: 29px; }
+.brand small { display: block; color: var(--side-dim); font-weight: 500; font-size: 12px; }
+.navlabel { padding: 6px 10px; font-size: 12px; color: var(--side-dim); font-weight: 600; }
+.nav a { position: relative; display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 10px; color: var(--side-ink); font-weight: 500; cursor: pointer; text-decoration: none; }
+.nav a:hover { background: rgba(255,255,255,.06); color: #fff; }
+.nav a[aria-current="page"] { background: var(--side-on); color: #fff; font-weight: 600; }
+.nav a[aria-current="page"]::before { content: ""; position: absolute; left: -14px; top: 9px; bottom: 9px; width: 4px; border-radius: 0 4px 4px 0; background: var(--light-sq); }
+.nav .cnt { margin-left: auto; background: #e5484d; color: #fff; border-radius: 999px; padding: 0 7px; font-size: 11px; line-height: 18px; font-weight: 600; }
+.side-foot { margin-top: auto; display: grid; gap: 10px; }
+.sys { background: rgba(255,255,255,.06); border-radius: 12px; padding: 12px; font-size: 12.5px; color: var(--side-ink); }
+.sys b { display: flex; align-items: center; gap: 8px; color: #fff; font-weight: 600; margin-bottom: 2px; } .sys b::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: #4ade80; box-shadow: 0 0 0 3px rgba(74,222,128,.2); }
+.me { display: flex; align-items: center; gap: 10px; padding: 6px 4px 0; }
+.me .avatar { background: var(--light-sq); color: #18301f; } .me .nm { font-weight: 600; color: #fff; line-height: 1.2; } .me small { color: var(--side-dim); display: block; font-weight: 400; }
+.me button { margin-left: auto; background: none; border: 0; color: var(--side-dim); cursor: pointer; padding: 8px; border-radius: 8px; } .me button:hover { background: rgba(255,255,255,.08); color: #fff; }
+.content { min-width: 0; }
+.top { position: sticky; top: 0; z-index: 8; display: flex; align-items: center; gap: 12px; padding: 16px 32px; background: color-mix(in srgb, var(--bg) 82%, transparent); backdrop-filter: blur(10px); border-bottom: 1px solid transparent; }
+.top h1 { margin: 0; font-size: 22px; letter-spacing: -.03em; line-height: 1.2; } .top .sub { color: var(--muted); font-size: 13px; }
+.top .sp { flex: 1; } .top .upd { color: var(--muted); font-size: 12.5px; }
+main { padding: 8px 32px 48px; width: 100%; max-width: 1760px; margin: 0 auto; }
+
+/* ---------- blocks ---------- */
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow); }
+.card h3 { margin: 0; font-size: 15px; letter-spacing: -.01em; }
+.card .hd { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 18px 20px 0; }
+.card .hd .hint { color: var(--muted); font-size: 12.5px; }
+.card .bd { padding: 14px 20px 20px; }
+.grid { display: grid; gap: 16px; margin-top: 16px; }
+.g4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.g3 { grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); }
+.g3b { grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr) minmax(0, .8fr); }
+
+.hero { position: relative; overflow: hidden; border-radius: 18px; padding: 26px 30px; color: #fff; background: linear-gradient(110deg, var(--hero-a), var(--hero-b)); display: flex; align-items: center; gap: 20px; min-height: 132px; }
+.hero::after { content: ""; position: absolute; right: 0; top: 0; bottom: 0; width: 46%; opacity: .16; background: conic-gradient(#fff 25%, transparent 0 50%, #fff 0 75%, transparent 0) 0 0 / 56px 56px; -webkit-mask-image: linear-gradient(90deg, transparent, #000 70%); mask-image: linear-gradient(90deg, transparent, #000 70%); }
+.hero img { position: absolute; right: 38px; bottom: -14px; width: 150px; height: 150px; opacity: .95; z-index: 1; filter: drop-shadow(0 10px 16px rgba(0,0,0,.35)); }
+.hero .t { position: relative; z-index: 2; max-width: 560px; }
+.hero h2 { margin: 0 0 4px; font-size: 24px; letter-spacing: -.03em; } .hero p { margin: 0 0 14px; opacity: .88; }
+.hero .btn { background: #fff; color: #173a24; border-color: #fff; } .hero .btn:hover { background: #f1f6f2; }
+.hero .btn.ghost { background: transparent; color: #fff; border-color: rgba(255,255,255,.45); margin-left: 6px; } .hero .btn.ghost:hover { background: rgba(255,255,255,.12); }
+
+.kpi { padding: 18px 20px; display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; align-items: start; }
+.kpi .ic { grid-row: 1 / 3; grid-column: 2; width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; background: var(--brand-soft); color: var(--brand); }
+.kpi .ic.warn { background: var(--warn-bg); color: var(--warn); } .kpi .ic.info { background: var(--info-bg); color: var(--info); } .kpi .ic.ok { background: var(--ok-bg); color: var(--ok); }
+.kpi .l { color: var(--muted); font-size: 13px; font-weight: 500; }
+.kpi .v { font-size: 30px; font-weight: 700; letter-spacing: -.03em; line-height: 1.15; }
+.kpi .s { grid-column: 1 / 3; color: var(--muted); font-size: 12.5px; margin-top: 6px; display: flex; align-items: center; gap: 8px; }
+.kpi .s svg { margin-left: auto; width: 84px; height: 24px; }
+.delta { font-weight: 600; font-size: 12px; padding: 1px 7px; border-radius: 99px; background: var(--ok-bg); color: var(--ok); }
+
+.chart { width: 100%; height: auto; display: block; }
+.chart text { fill: var(--muted); font-size: 11px; }
+.chart .val { fill: var(--ink); font-weight: 600; }
+.donutwrap { display: flex; align-items: center; gap: 22px; flex-wrap: wrap; }
+.donut { width: 150px; height: 150px; flex: none; } .donut text { text-anchor: middle; } .donut .big { font-size: 26px; font-weight: 700; fill: var(--ink); letter-spacing: -.03em; } .donut .sm { font-size: 11.5px; fill: var(--muted); }
+.legend { display: grid; gap: 10px; flex: 1; min-width: 150px; }
+.legend div { display: flex; align-items: center; gap: 9px; } .legend b { margin-left: auto; font-weight: 600; }
+.dot { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+.list { display: grid; }
+.list > * { display: flex; align-items: center; gap: 12px; text-align: left; background: none; border: 0; border-top: 1px solid var(--line); padding: 12px 20px; width: 100%; color: inherit; }
+.list > *:first-child { border-top: 0; } .list button { cursor: pointer; } .list button:hover { background: var(--sunken); }
+.avatar { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: var(--brand-soft); color: var(--brand); font-weight: 700; flex: none; font-size: 13px; }
+.avatar.bot { background: var(--info-bg); color: var(--info); }
+.list .t { min-width: 0; flex: 1; } .list .t div { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.list .r { text-align: right; white-space: nowrap; flex: none; }
+.sum { display: grid; } .sum div { display: flex; align-items: center; justify-content: space-between; padding: 11px 0; border-top: 1px solid var(--line); } .sum div:first-child { border-top: 0; padding-top: 0; } .sum b { font-weight: 600; }
+.empty { text-align: center; padding: 34px 18px; color: var(--muted); }
+.empty svg { width: 34px; height: 34px; margin-bottom: 8px; opacity: .55; }
+.empty b { display: block; color: var(--ink); margin-bottom: 2px; font-size: 15px; }
+
+.tools { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin: 8px 0 16px; }
+.seg { display: inline-flex; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 3px; gap: 2px; }
+.seg button { border: 0; background: none; padding: 7px 13px; border-radius: 9px; font-weight: 600; font-size: 13px; color: var(--muted); cursor: pointer; }
+.seg button:hover { color: var(--ink); }
+.seg button[aria-pressed="true"] { background: var(--brand-soft); color: var(--brand); }
+.seg .n { margin-left: 6px; font-size: 12px; opacity: .8; }
+.search { position: relative; flex: 1; min-width: 220px; max-width: 380px; }
+.search svg { position: absolute; left: 11px; top: 10px; color: var(--muted); width: 16px; height: 16px; }
+.search input { width: 100%; padding: 9px 12px 9px 34px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+select.sel { padding: 9px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+.tw { overflow-x: auto; border-radius: 16px; }
+table { width: 100%; border-collapse: collapse; min-width: 720px; }
+th { text-align: left; padding: 12px 20px; color: var(--muted); font-size: 12.5px; font-weight: 600; background: var(--sunken); border-bottom: 1px solid var(--line); white-space: nowrap; }
+td { padding: 14px 20px; border-bottom: 1px solid var(--line); white-space: nowrap; vertical-align: middle; }
+tr:last-child td { border-bottom: 0; }
+tr.click { cursor: pointer; } tr.click:hover td, tbody tr:hover td { background: var(--sunken); }
+td.r, th.r { text-align: right; }
+.who2 { display: flex; align-items: center; gap: 12px; } .who2 .n { font-weight: 600; line-height: 1.3; }
+.pill { display: inline-flex; align-items: center; gap: 6px; padding: 2px 10px; border-radius: 99px; font-size: 12px; font-weight: 600; background: var(--sunken); color: var(--muted); }
+.pill::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.pill.approved, .pill.online, .pill.win { background: var(--ok-bg); color: var(--ok); }
+.pill.pending { background: var(--warn-bg); color: var(--warn); }
+.pill.rejected, .pill.suspended { background: var(--bad-bg); color: var(--bad); }
+.pill.none { background: var(--sunken); color: var(--muted); }
+.pill.draw { background: var(--info-bg); color: var(--info); }
+.stake { font-weight: 600; } .stake small { color: var(--muted); font-weight: 500; }
+.foot { color: var(--muted); font-size: 12.5px; margin-top: 20px; }
+
+/* ---------- drawer, dialog, lightbox ---------- */
+.scrim { position: fixed; inset: 0; background: rgba(8,14,9,.5); z-index: 30; opacity: 0; pointer-events: none; transition: opacity .18s; }
+.scrim.on { opacity: 1; pointer-events: auto; }
+.drawer { position: fixed; top: 0; right: 0; bottom: 0; width: min(580px, 100%); background: var(--surface); z-index: 31; transform: translateX(100%); transition: transform .22s cubic-bezier(.2,.8,.2,1); display: flex; flex-direction: column; box-shadow: -20px 0 40px -20px rgba(0,0,0,.4); }
+.drawer.on { transform: none; }
+.drawer .dh { display: flex; gap: 14px; align-items: flex-start; padding: 20px 22px; border-bottom: 1px solid var(--line); }
+.drawer .dh h2 { margin: 0; font-size: 19px; letter-spacing: -.02em; } .drawer .dh .x { margin-left: auto; }
+.drawer .db { padding: 20px 22px; overflow-y: auto; flex: 1; }
+.drawer .df { border-top: 1px solid var(--line); padding: 16px 22px; background: var(--sunken); }
+.kv { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 18px; }
+.kv .k { color: var(--muted); font-size: 12.5px; } .kv .v { font-weight: 600; word-break: break-word; }
+.photos { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin: 20px 0; }
+.photos button { padding: 0; border: 1px solid var(--line); border-radius: 12px; background: #000; overflow: hidden; cursor: zoom-in; position: relative; aspect-ratio: 4/3; }
+.photos img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.photos span { position: absolute; left: 8px; bottom: 8px; background: rgba(0,0,0,.65); color: #fff; font-size: 11.5px; padding: 1px 8px; border-radius: 99px; }
+.callout { background: var(--sunken); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; font-size: 13px; color: var(--muted); }
+.callout.bad { background: var(--bad-bg); border-color: transparent; color: var(--bad); }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0; }
+.chips button { border: 1px solid var(--line); background: var(--surface); border-radius: 99px; padding: 3px 10px; font-size: 12px; cursor: pointer; color: var(--muted); }
+.chips button:hover { color: var(--ink); border-color: var(--muted); }
+textarea.reason { width: 100%; border: 1px solid var(--line); border-radius: 10px; padding: 9px 12px; background: var(--surface); resize: vertical; }
+.btns { display: flex; gap: 8px; margin-top: 10px; justify-content: flex-end; flex-wrap: wrap; }
+.dialog { position: fixed; z-index: 41; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(400px, calc(100% - 32px)); padding: 22px; display: none; }
+.dialog.on { display: block; } .dialog h3 { font-size: 17px; margin: 0 0 6px; } .dialog p { margin: 0; color: var(--muted); }
+.lightbox { position: fixed; inset: 0; z-index: 50; background: rgba(0,0,0,.88); display: none; place-items: center; padding: 20px; cursor: zoom-out; }
+.lightbox.on { display: grid; } .lightbox img { max-width: 100%; max-height: 100%; border-radius: 10px; }
+#toast { position: fixed; bottom: 22px; left: 50%; transform: translate(-50%, 20px); background: var(--ink); color: var(--bg); padding: 10px 16px; border-radius: 12px; font-weight: 600; opacity: 0; pointer-events: none; transition: .2s; z-index: 60; }
+#toast.on { opacity: 1; transform: translate(-50%, 0); }
+.skel { background: linear-gradient(90deg, var(--sunken), var(--line), var(--sunken)); background-size: 200% 100%; animation: sk 1.2s infinite; border-radius: 8px; height: 18px; }
+@keyframes sk { to { background-position: -200% 0; } }
+
+/* ---------- responsive ---------- */
+@media (max-width: 1280px) { .g4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } .g3, .g3b { grid-template-columns: 1fr; } }
+@media (max-width: 900px) {
+  .login { grid-template-columns: 1fr; } .board { min-height: 200px; padding: 20px; } .board .mark img { width: 80px; height: 80px; } .board .mark h1 { font-size: 22px; }
+  .shell { grid-template-columns: 1fr; }
+  aside.side { position: sticky; top: 0; z-index: 10; height: auto; flex-direction: row; align-items: center; padding: 8px 10px; overflow-x: auto; gap: 6px; }
+  .brand { padding: 0 8px 0 0; } .brand small, .brand .t, .navlabel, .sys, .me .nm { display: none; }
+  .nav { display: flex; gap: 2px; } .nav a { padding: 8px 10px; white-space: nowrap; } .nav a svg { display: none; } .nav a[aria-current="page"]::before { display: none; }
+  .side-foot { margin: 0 0 0 auto; display: flex; } .me { padding: 0; }
+  .top { padding: 14px 16px 10px; position: static; } main { padding: 4px 16px 32px; }
+  .hero { padding: 20px; } .hero img { display: none; } .hero h2 { font-size: 20px; }
+  .kpi .v { font-size: 25px; }
+}
+@media (max-width: 520px) { .g4 { grid-template-columns: 1fr 1fr; gap: 10px; } .kpi { padding: 14px; } .kpi .ic { display: none; } .kpi .s svg { display: none; } .top .upd { display: none; } }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 </style>
 </head>
 <body>
-<header>
-  <div class="brand"><i>♞</i>Chess Arena · Admin</div>
-  <nav id="nav">
-    <button data-t="overview" class="on">Overview</button>
-    <button data-t="kyc">KYC<span class="n" id="kycBadge" hidden>0</span></button>
-    <button data-t="users">Users</button>
-    <button data-t="games">Games</button>
-  </nav>
-</header>
-<main>
-  <section id="overview"></section>
-  <section id="kyc" hidden>
-    <div class="bar-tools">
-      <select id="kycFilter"><option value="pending">Pending review</option><option value="approved">Approved</option><option value="rejected">Rejected</option><option value="">All submissions</option></select>
-      <button class="b" id="kycReload">Refresh</button>
-    </div>
-    <div class="tablewrap"><table><thead><tr><th>Player</th><th>Name on document</th><th>Document</th><th>Country</th><th>Submitted</th><th>Status</th></tr></thead><tbody id="kycRows"></tbody></table></div>
-  </section>
-  <section id="users" hidden>
-    <div class="bar-tools"><input id="userQ" placeholder="Search name, id or wallet" size="30"><select id="userKyc"><option value="">All KYC states</option><option value="none">Not started</option><option value="pending">Pending</option><option value="approved">Approved</option><option value="rejected">Rejected</option></select></div>
-    <div class="tablewrap"><table><thead><tr><th>Player</th><th>KYC</th><th>Wallet</th><th>Balance</th><th>Games</th><th>W / L / D</th><th>Net</th><th>Joined</th><th></th></tr></thead><tbody id="userRows"></tbody></table></div>
-  </section>
-  <section id="games" hidden>
-    <div class="tablewrap"><table><thead><tr><th>When</th><th>White</th><th>Black</th><th>Stake</th><th>Pot</th><th>Result</th><th>Reason</th><th>Moves</th><th>Fee</th></tr></thead><tbody id="gameRows"></tbody></table></div>
-  </section>
-</main>
 
-<div class="modal" id="modal"><div class="sheet" id="sheet"></div></div>
-<div id="toast"></div>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 4.5-3.2 8-8 9-4.8-1-8-4.5-8-9V6z"/><path d="M9 12l2 2 4-4"/></symbol>
+  <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.6 3.2-5.5 6.5-5.5s5.9 1.9 6.5 5.5"/><path d="M16 4.7a3.5 3.5 0 010 6.6M18 14.8c2 .6 3.2 2.3 3.5 5.2"/></symbol>
+  <symbol id="i-board" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18" opacity=".55"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M6 4l14 8-14 8z"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8.5 12.5l2.5 2.5 4.5-5"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 11a8 8 0 00-14.5-4M4 4v4h4M4 13a8 8 0 0014.5 4M20 20v-4h-4"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 019.5 4 8 8 0 1020 14.5z"/></symbol>
+  <symbol id="i-out" viewBox="0 0 24 24"><path d="M15 4h3a2 2 0 012 2v12a2 2 0 01-2 2h-3M10 8l-4 4 4 4M6 12h10"/></symbol>
+  <symbol id="i-coin" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M9.5 9.5c0-1 1-1.7 2.5-1.7s2.5.7 2.5 1.7-1 1.5-2.5 1.8-2.5.8-2.5 1.8 1 1.7 2.5 1.7 2.5-.7 2.5-1.7"/></symbol>
+</svg>
+
+<!-- ============ login ============ -->
+<div class="login" id="loginView" hidden>
+  <div class="board"><div class="mark"><img src="/admin/logo.svg" alt=""><h1>Chess Arena</h1><p>Operations console</p></div></div>
+  <div class="panel">
+    <form id="loginForm" autocomplete="on">
+      <h2>Sign in</h2>
+      <p class="sub">Staff only. Review identity checks and watch the platform.</p>
+      <div class="disabled-note" id="offNote" hidden>Admin is switched off. Set the <b>ADMIN_PASSWORD</b> environment variable on the server and redeploy.</div>
+      <label class="f">Username<input id="lUser" name="username" autocomplete="username" required autofocus></label>
+      <label class="f pw">Password<input id="lPass" name="password" type="password" autocomplete="current-password" required><button type="button" id="lShow" aria-label="Show password">Show</button></label>
+      <div class="err" id="lErr" role="alert" aria-live="polite"></div>
+      <button class="btn primary block" id="lBtn" type="submit">Sign in</button>
+    </form>
+  </div>
+</div>
+
+<!-- ============ app ============ -->
+<div class="shell" id="appView" hidden>
+  <aside class="side">
+    <div class="brand"><div class="sq"><img src="/admin/logo.svg" alt=""></div><span class="t">Chess Arena<small>Admin console</small></span></div>
+    <div class="navlabel">Manage</div>
+    <nav class="nav" id="nav">
+      <a data-t="overview" href="#overview"><svg class="i"><use href="#i-grid"/></svg>Overview</a>
+      <a data-t="kyc" href="#kyc"><svg class="i"><use href="#i-shield"/></svg>Identity checks<span class="cnt" id="kycBadge" hidden>0</span></a>
+      <a data-t="users" href="#users"><svg class="i"><use href="#i-users"/></svg>Players</a>
+      <a data-t="games" href="#games"><svg class="i"><use href="#i-board"/></svg>Games</a>
+    </nav>
+    <div class="side-foot">
+      <div class="sys"><b>Server online</b>Demo build · payments are mocked</div>
+      <div class="me"><span class="avatar" id="meAv">A</span><div class="nm"><span id="who">admin</span><small>Administrator</small></div><button id="outBtn" title="Sign out" aria-label="Sign out"><svg class="i"><use href="#i-out"/></svg></button></div>
+    </div>
+  </aside>
+  <div class="content">
+    <div class="top">
+      <div><h1 id="title">Overview</h1><div class="sub" id="subtitle"></div></div>
+      <span class="sp"></span><span class="upd" id="upd"></span>
+      <button class="btn icon" id="themeBtn" title="Switch light and dark" aria-label="Switch light and dark"><svg class="i"><use href="#i-moon"/></svg></button>
+      <button class="btn icon" id="refresh" title="Refresh" aria-label="Refresh"><svg class="i"><use href="#i-refresh"/></svg></button>
+    </div>
+    <main>
+      <section id="overview"></section>
+      <section id="kyc" hidden>
+        <div class="tools"><div class="seg" id="kycSeg"></div></div>
+        <div class="card tw"><table><thead><tr><th>Player</th><th>Name on document</th><th>Document</th><th>Country</th><th>Submitted</th><th>Status</th></tr></thead><tbody id="kycRows"></tbody></table></div>
+      </section>
+      <section id="users" hidden>
+        <div class="tools"><div class="search"><svg class="i"><use href="#i-search"/></svg><input id="userQ" type="search" placeholder="Search name, ID or wallet" aria-label="Search players"></div>
+          <select class="sel" id="userKyc" aria-label="Filter by identity check"><option value="">All identity states</option><option value="none">Not started</option><option value="pending">Pending</option><option value="approved">Approved</option><option value="rejected">Rejected</option></select>
+          <span class="muted" id="userCount"></span></div>
+        <div class="card tw"><table><thead><tr><th>Player</th><th>Identity</th><th>Wallet</th><th class="r">Balance</th><th class="r">Games</th><th>W / L / D</th><th class="r">Net</th><th>Joined</th><th></th></tr></thead><tbody id="userRows"></tbody></table></div>
+      </section>
+      <section id="games" hidden>
+        <div class="tools"><div class="seg" id="gameSeg"></div><span class="muted" id="gameCount"></span></div>
+        <div class="card tw"><table><thead><tr><th>When</th><th>White</th><th>Black</th><th class="r">Stake</th><th class="r">Pot</th><th>Result</th><th>Ended by</th><th class="r">Moves</th><th class="r">Fee</th></tr></thead><tbody id="gameRows"></tbody></table></div>
+      </section>
+      <p class="foot">Payments are mocked in this build, so volume and fees are test numbers. The game log keeps the last 500 games.</p>
+    </main>
+  </div>
+</div>
+
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer" aria-hidden="true" role="dialog" aria-label="Identity check"></aside>
+<div class="card dialog" id="dialog" role="alertdialog" aria-modal="true"></div>
+<div class="lightbox" id="lightbox"><img alt=""></div>
+<div id="toast" role="status"></div>
 
 <script>
 const $ = (id) => document.getElementById(id);
@@ -98,119 +311,278 @@ const ago = (t) => { if (!t) return '-'; const m = Math.floor((Date.now() - t) /
 const when = (t) => (t ? new Date(t).toLocaleString() : '-');
 const fmt = (n) => Number(n || 0).toFixed(2);
 const DOC = { passport: 'Passport', national_id: 'National ID', driving_licence: 'Driving licence' };
+const LABEL = { none: 'Not started', pending: 'Pending', approved: 'Approved', rejected: 'Rejected' };
 const short = (a) => (a ? a.slice(0, 6) + '…' + a.slice(-6) : '-');
-const pill = (s) => `<span class="pill ${esc(s)}">${esc({ none: 'not started' }[s] || s)}</span>`;
-function toast(m) { const t = $('toast'); t.textContent = m; t.style.display = 'block'; clearTimeout(toast.t); toast.t = setTimeout(() => (t.style.display = 'none'), 2600); }
+const pill = (s, text) => `<span class="pill ${esc(s)}">${esc(text || LABEL[s] || s)}</span>`;
+const initial = (n) => esc(String(n || '?').trim().charAt(0).toUpperCase() || '?');
+const ico = (n) => `<svg class="i"><use href="#i-${n}"/></svg>`;
+const TITLES = { overview: 'Overview', kyc: 'Identity checks', users: 'Players', games: 'Games' };
+const SUBS = {
+  overview: () => new Date().toLocaleDateString([], { weekday: 'long', day: 'numeric', month: 'long' }),
+  kyc: () => 'Check each player\'s documents before they can play',
+  users: () => 'Everyone who opened the game',
+  games: () => 'Finished games, newest first',
+};
+
+function toast(m) { const t = $('toast'); t.textContent = m; t.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('on'), 2400); }
+
+// ---------- theme ----------
+const root = document.documentElement;
+try { const th = localStorage.getItem('adm.theme'); if (th) root.dataset.theme = th; } catch (e) {}
+$('themeBtn').onclick = () => {
+  const dark = root.dataset.theme ? root.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+  root.dataset.theme = dark ? 'light' : 'dark';
+  try { localStorage.setItem('adm.theme', root.dataset.theme); } catch (e) {}
+};
+
+// ---------- api ----------
+class AuthError extends Error {}
 async function api(path, body) {
-  const r = await fetch('/api/admin' + path, body ? { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) } : {});
+  const r = await fetch('/api/admin' + path, body ? { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body), credentials: 'same-origin' } : { credentials: 'same-origin' });
   const j = await r.json().catch(() => ({}));
-  if (!r.ok) throw new Error(j.error || r.statusText);
+  if (r.status === 401 && path !== '/login') { showLogin(); throw new AuthError('Session ended. Sign in again.'); }
+  if (!r.ok) { const e = new Error(j.error || r.statusText); e.status = r.status; throw e; }
   return j;
 }
 
-// ---------- tabs ----------
-let tab = 'overview', users = [], kycList = [];
-document.querySelectorAll('#nav button').forEach((b) => { b.onclick = () => go(b.dataset.t); });
+// ---------- login ----------
+function showLogin(off) {
+  closeDrawer();
+  $('appView').hidden = true; $('loginView').hidden = false; $('offNote').hidden = !off;
+  $('lPass').value = ''; $('lUser').focus();
+}
+$('lShow').onclick = () => { const p = $('lPass'); const show = p.type === 'password'; p.type = show ? 'text' : 'password'; $('lShow').textContent = show ? 'Hide' : 'Show'; };
+$('loginForm').onsubmit = async (e) => {
+  e.preventDefault(); $('lErr').textContent = ''; $('lBtn').disabled = true; $('lBtn').textContent = 'Signing in…';
+  try { const j = await api('/login', { username: $('lUser').value.trim(), password: $('lPass').value }); enter(j.user); }
+  catch (err) { $('lErr').textContent = err.message; if (err.status === 503) $('offNote').hidden = false; }
+  finally { $('lBtn').disabled = false; $('lBtn').textContent = 'Sign in'; }
+};
+$('outBtn').onclick = async () => { try { await api('/logout', {}); } catch (e) {} tabData = {}; summary = null; showLogin(); };
+
+async function boot() {
+  try { const j = await api('/me'); enter(j.user); }
+  catch (e) { if (e.status === 503) showLogin(true); else if (!(e instanceof AuthError)) showLogin(); }
+}
+let me = 'admin';
+function enter(user) {
+  me = user;
+  $('loginView').hidden = true; $('appView').hidden = false; $('who').textContent = user; $('meAv').textContent = user.charAt(0).toUpperCase();
+  go((location.hash || '#overview').slice(1));
+}
+
+// ---------- navigation ----------
+let tab = 'overview', summary = null, users = [], kycList = [], kycFilter = 'pending', gameFilter = '', games = [], tabData = {};
+document.querySelectorAll('#nav a').forEach((a) => { a.onclick = (e) => { e.preventDefault(); go(a.dataset.t); }; });
+$('refresh').onclick = () => load(true);
 function go(t) {
-  tab = t;
-  document.querySelectorAll('#nav button').forEach((b) => b.classList.toggle('on', b.dataset.t === t));
-  ['overview', 'kyc', 'users', 'games'].forEach((s) => ($(s).hidden = s !== t));
+  if (!TITLES[t]) t = 'overview';
+  tab = t; history.replaceState(null, '', '#' + t);
+  document.querySelectorAll('#nav a').forEach((a) => (a.dataset.t === t ? a.setAttribute('aria-current', 'page') : a.removeAttribute('aria-current')));
+  Object.keys(TITLES).forEach((s) => ($(s).hidden = s !== t));
+  $('title').textContent = TITLES[t]; $('subtitle').textContent = SUBS[t]();
+  window.scrollTo(0, 0);
   load();
 }
-async function load() {
+async function load(manual) {
   try {
     if (tab === 'overview') await loadOverview();
     if (tab === 'kyc') await loadKyc();
     if (tab === 'users') await loadUsers();
     if (tab === 'games') await loadGames();
-  } catch (e) { toast(e.message); }
+    $('upd').textContent = 'Updated ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    if (manual) toast('Refreshed');
+  } catch (e) { if (!(e instanceof AuthError)) toast(e.message); }
 }
+function setBadge(n) { $('kycBadge').hidden = !n; $('kycBadge').textContent = n; }
 
 // ---------- overview ----------
 async function loadOverview() {
-  const s = await api('/summary');
-  const k = s.kyc, max = Math.max(1, ...s.days.map((d) => d.games));
-  $('kycBadge').hidden = !k.pending; $('kycBadge').textContent = k.pending;
-  const c = (t, v, sub) => `<div class="card"><div class="k">${t}</div><div class="v">${v}</div><div class="s">${sub || ''}</div></div>`;
-  $('overview').innerHTML = `<div class="grid">
-    ${c('Players', s.users, `${s.online} online now`)}
-    ${c('KYC pending', k.pending, k.pending ? 'needs review' : 'all clear')}
-    ${c('KYC approved', k.approved, `${k.rejected} rejected · ${k.none} not started`)}
-    ${c('Wallets linked', s.withWallet, `${s.banned} suspended`)}
-    ${c('Active games', s.activeGames, `${s.queued} waiting for opponent`)}
-    ${c('Games played', s.games, `${s.decided} decided, ${s.games - s.decided} drawn`)}
-    ${c('Volume (TON)', fmt(s.volume), 'total pots, demo funds')}
-    ${c('Platform fees (TON)', fmt(s.fees), '5% of decided pots')}
-    ${c('Player balances (TON)', fmt(s.balances), 'demo funds in circulation')}
-  </div>
-  <h2>Games, last 7 days</h2>
-  <div class="card"><div class="bars">${s.days.map((d) => `<div class="bar">${d.games}<div style="height:${Math.round((d.games / max) * 78)}px"></div>${esc(d.day)}</div>`).join('')}</div></div>
-  <div class="note">Payments are mocked in this demo build, so volume and fees are test numbers. Game history keeps the last 500 games.</div>`;
+  if (!summary) $('overview').innerHTML = '<div class="skel" style="height:132px;border-radius:18px"></div><div class="grid g4">' + '<div class="card" style="padding:20px"><div class="skel"></div></div>'.repeat(4) + '</div>';
+  const [s, pend, gl] = await Promise.all([api('/summary'), api('/kyc?status=pending'), api('/games')]);
+  summary = s; tabData.pending = pend; tabData.recent = gl.slice(0, 6);
+  setBadge(s.kyc.pending);
+  renderOverview();
 }
-
-// ---------- KYC ----------
-$('kycFilter').onchange = $('kycReload').onclick = loadKyc;
-async function loadKyc() {
-  kycList = await api('/kyc?status=' + encodeURIComponent($('kycFilter').value));
-  $('kycRows').innerHTML = kycList.length ? kycList.map((k, i) => `<tr class="click" data-i="${i}">
-    <td><b>${esc(k.name)}</b><div class="mono muted">${esc(k.id)}</div></td><td>${esc(k.fullName)}</td>
-    <td>${esc(DOC[k.docType] || k.docType)}<div class="mono muted">${esc(k.docNumber)}</div></td><td>${esc(k.country)}</td>
-    <td>${ago(k.submittedAt)}</td><td>${pill(k.status)}</td></tr>`).join('') : '<tr><td colspan="6" class="empty">No submissions here</td></tr>';
-  $('kycRows').querySelectorAll('tr.click').forEach((r) => { r.onclick = () => openKyc(kycList[+r.dataset.i]); });
-  const all = await api('/kyc?status=pending'); $('kycBadge').hidden = !all.length; $('kycBadge').textContent = all.length;
+function spark(days) {
+  const max = Math.max(1, ...days.map((d) => d.games)), W = 84, H = 24;
+  const pts = days.map((d, i) => `${(i / (days.length - 1)) * W},${H - 3 - (d.games / max) * (H - 6)}`).join(' ');
+  return `<svg viewBox="0 0 ${W} ${H}" aria-hidden="true"><polyline points="${pts}" fill="none" stroke="var(--brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 }
-function openKyc(k) {
-  const img = (f, label) => (k.files.includes(f) ? `<figure><a href="/api/admin/kyc/${encodeURIComponent(k.id)}/${f}" target="_blank" rel="noopener"><img src="/api/admin/kyc/${encodeURIComponent(k.id)}/${f}" alt="${label}"></a><figcaption>${label}</figcaption></figure>` : '');
-  $('sheet').innerHTML = `<div style="display:flex;justify-content:space-between;gap:10px"><div><h3>${esc(k.fullName)}</h3><div class="muted">Telegram: ${esc(k.name)} · <span class="mono">${esc(k.id)}</span></div></div><div>${pill(k.status)}</div></div>
-    <div class="kv">
-      <div><span>Date of birth</span>${esc(k.dob)}</div><div><span>Country</span>${esc(k.country)}</div>
-      <div><span>Document</span>${esc(DOC[k.docType] || k.docType)}</div><div><span>Document number</span><span class="mono" style="color:var(--text);font-size:14px;text-transform:none;letter-spacing:0">${esc(k.docNumber)}</span></div>
-      <div><span>Submitted</span>${when(k.submittedAt)} (attempt ${k.attempts})</div><div><span>Reviewed</span>${k.reviewedAt ? `${when(k.reviewedAt)} by ${esc(k.reviewedBy)}` : '-'}</div>
+function chartSvg(days) {
+  const cw = $('overview').clientWidth || 900, narrow = cw < 1000 || window.innerWidth <= 1280;
+  const W = Math.max(320, Math.round(narrow ? cw - 40 : cw * 0.6 - 40)), H = 230, pl = 30, pr = 10, pt = 24, pb = 30, max = Math.max(4, ...days.map((d) => d.games));
+  const top = Math.ceil(max / 4) * 4, bw = (W - pl - pr) / days.length;
+  const grid = [0, 1, 2, 3, 4].map((i) => { const y = pt + ((H - pt - pb) * i) / 4; return `<line x1="${pl}" x2="${W - pr}" y1="${y}" y2="${y}" stroke="var(--line)"/><text x="${pl - 8}" y="${y + 4}" text-anchor="end">${Math.round(top - (top * i) / 4)}</text>`; }).join('');
+  const bars = days.map((d, i) => {
+    const h = Math.round((d.games / top) * (H - pt - pb)), x = pl + i * bw + bw * 0.22, w = bw * 0.56, y = H - pb - h, last = i === days.length - 1;
+    return `<rect x="${x}" y="${y}" width="${w}" height="${Math.max(h, 3)}" rx="6" fill="var(--brand)" opacity="${d.games ? (last ? 1 : .55) : .18}"/>
+      ${d.games ? `<text class="val" x="${x + w / 2}" y="${y - 7}" text-anchor="middle">${d.games}</text>` : ''}<text x="${x + w / 2}" y="${H - 9}" text-anchor="middle">${esc(d.day)}</text>`;
+  }).join('');
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Games per day, last 7 days: ${days.map((d) => `${d.day} ${d.games}`).join(', ')}">${grid}${bars}</svg>`;
+}
+function donut(k) {
+  const parts = [['approved', 'Verified', 'var(--ok)'], ['pending', 'Waiting for review', 'var(--warn)'], ['rejected', 'Rejected', 'var(--bad)'], ['none', 'Not started', 'var(--line)']];
+  const total = parts.reduce((n, p) => n + k[p[0]], 0), R = 56, C = 2 * Math.PI * R;
+  let off = 0;
+  const arcs = total ? parts.filter((p) => k[p[0]]).map((p) => { const len = (k[p[0]] / total) * C, el = `<circle cx="75" cy="75" r="${R}" fill="none" stroke="${p[2]}" stroke-width="16" stroke-dasharray="${Math.max(len - 3, 1)} ${C}" stroke-dashoffset="${-off}" transform="rotate(-90 75 75)"/>`; off += len; return el; }).join('') : '';
+  return `<div class="donutwrap"><svg class="donut" viewBox="0 0 150 150" role="img" aria-label="Identity checks"><circle cx="75" cy="75" r="${R}" fill="none" stroke="var(--sunken)" stroke-width="16"/>${arcs}<text class="big" x="75" y="78">${total}</text><text class="sm" x="75" y="96">players</text></svg>
+    <div class="legend">${parts.map((p) => `<div><span class="dot" style="background:${p[2]}"></span>${p[1]}<b>${k[p[0]]}</b></div>`).join('')}</div></div>`;
+}
+const winner = (x) => (x.winner === 'draw' ? null : x.winner === 'w' ? x.white : x.black);
+function renderOverview() {
+  const s = summary, k = s.kyc, total = Math.max(1, k.none + k.pending + k.approved + k.rejected);
+  const hr = new Date().getHours(), greet = hr < 12 ? 'Good morning' : hr < 18 ? 'Good afternoon' : 'Good evening';
+  const today = s.days[s.days.length - 1].games, yest = s.days[s.days.length - 2].games;
+  const q = (tabData.pending || []).slice(0, 5), rec = tabData.recent || [];
+  const kpi = (l, v, sub, icon, cls, extra) => `<div class="card kpi"><div class="l">${l}</div><div class="ic ${cls || ''}">${ico(icon)}</div><div class="v">${v}</div><div class="s">${sub}${extra || ''}</div></div>`;
+  $('overview').innerHTML = `
+    <div class="hero"><div class="t"><h2>${greet}, ${esc(me)}</h2>
+      <p>${k.pending ? `${k.pending} identity ${k.pending === 1 ? 'check is' : 'checks are'} waiting for review. Players can't connect a wallet or play until you approve them.` : 'No identity checks are waiting. Everything is up to date.'}</p>
+      ${k.pending ? '<button class="btn" id="heroGo">Review now</button>' : '<button class="btn" id="heroGo">Open players</button>'}</div>
+      <img src="/admin/logo.svg" alt=""></div>
+    <div class="grid g4">
+      ${kpi('Players', s.users, `${s.online} online now`, 'users', 'info')}
+      ${kpi('Verified', k.approved, `${Math.round((k.approved / total) * 100)}% of players`, 'check', 'ok')}
+      ${kpi('In play now', s.activeGames, `${s.queued} waiting for an opponent`, 'play', '')}
+      ${kpi('Games played', s.games, `${today} today${today > yest ? ` <span class="delta">+${today - yest}</span>` : ''}`, 'board', 'warn', spark(s.days))}
     </div>
-    ${k.reason ? `<div class="note">Reason given: ${esc(k.reason)}</div>` : ''}
-    <div class="imgs">${img('front', 'Document, front')}${img('back', 'Document, back')}${img('selfie', 'Selfie')}</div>
-    <div class="note">Check: name and date of birth match the document, the document is valid and readable, and the selfie matches the photo on it.</div>
-    <div class="actions">
-      <div class="grow"><textarea id="rejReason" rows="2" placeholder="Reason (required to reject, shown to the player)"></textarea></div>
-      <button class="b bad" id="rejBtn">Reject</button><button class="b ok" id="appBtn">Approve</button><button class="b" id="closeBtn">Close</button>
+    <div class="grid g3">
+      <div class="card"><div class="hd"><h3>Games, last 7 days</h3><span class="hint">${s.days.reduce((n, d) => n + d.games, 0)} total</span></div><div class="bd">${chartSvg(s.days)}</div></div>
+      <div class="card"><div class="hd"><h3>Identity checks</h3></div><div class="bd">${donut(k)}</div></div>
+    </div>
+    <div class="grid g3b">
+      <div class="card"><div class="hd"><h3>Waiting for review</h3>${k.pending > 5 ? `<button class="btn sm" id="seeAll">See all ${k.pending}</button>` : ''}</div>
+        <div class="list" style="margin-top:10px">${q.length ? q.map((x, i) => `<button data-i="${i}"><span class="avatar">${initial(x.fullName || x.name)}</span><span class="t"><div><b>${esc(x.fullName || x.name)}</b></div><div class="muted">${esc(DOC[x.docType] || x.docType)} · ${esc(x.country)} · ${ago(x.submittedAt)}</div></span><span class="btn sm">Review</span></button>`).join('') : `<div class="empty">${ico('shield')}<b>Nothing to review</b>New identity checks appear here.</div>`}</div></div>
+      <div class="card"><div class="hd"><h3>Recent games</h3><button class="btn sm" id="allGames">View all</button></div>
+        <div class="list" style="margin-top:10px">${rec.length ? rec.map((x) => { const w = winner(x); return `<div><span class="avatar ${w && w.id === 'bot' ? 'bot' : ''}">${initial(w ? w.name : '=')}</span><span class="t"><div><b>${esc(x.white.name)}</b> <span class="muted">vs</span> <b>${esc(x.black.name)}</b></div><div class="muted">${w ? esc(w.name) + ' won' : 'Draw'} · ${esc(x.reason)} · ${x.moves} moves</div></span><span class="r"><div class="stake">${fmt(x.stake)} <small>TON</small></div><div class="muted" style="font-size:12px">${ago(x.at)}</div></span></div>`; }).join('') : `<div class="empty">${ico('board')}<b>No finished games yet</b>Completed games show up here.</div>`}</div></div>
+      <div class="card"><div class="hd"><h3>Test funds</h3></div><div class="bd"><div class="sum">
+        <div><span class="muted">Volume played</span><b>${fmt(s.volume)}</b></div><div><span class="muted">Platform fees (5%)</span><b>${fmt(s.fees)}</b></div><div><span class="muted">Player balances</span><b>${fmt(s.balances)}</b></div><div><span class="muted">Wallets linked</span><b>${s.withWallet}</b></div><div><span class="muted">Suspended</span><b>${s.banned}</b></div>
+      </div><div class="muted" style="font-size:12px;margin-top:10px">Amounts in TON, demo only.</div></div></div>
     </div>`;
-  $('modal').classList.add('on');
-  const act = async (action) => {
-    try { await api('/kyc/' + encodeURIComponent(k.id), { action, reason: $('rejReason').value }); toast(action === 'approve' ? 'Approved' : 'Rejected'); $('modal').classList.remove('on'); load(); }
-    catch (e) { toast(e.message); }
-  };
-  $('appBtn').onclick = () => act('approve'); $('rejBtn').onclick = () => act('reject'); $('closeBtn').onclick = () => $('modal').classList.remove('on');
+  $('overview').querySelectorAll('.list button[data-i]').forEach((b) => { b.onclick = () => openKyc(tabData.pending[+b.dataset.i]); });
+  $('heroGo').onclick = () => { if (k.pending) { kycFilter = 'pending'; go('kyc'); } else go('users'); };
+  $('allGames').onclick = () => go('games');
+  const all = $('seeAll'); if (all) all.onclick = () => { kycFilter = 'pending'; go('kyc'); };
 }
-$('modal').onclick = (e) => { if (e.target === $('modal')) $('modal').classList.remove('on'); };
 
-// ---------- users ----------
+// ---------- identity checks ----------
+async function loadKyc() {
+  const [list, sum] = await Promise.all([api('/kyc?status=' + encodeURIComponent(kycFilter)), api('/summary')]);
+  summary = sum; kycList = list; setBadge(sum.kyc.pending);
+  const c = sum.kyc, tabs = [['pending', 'Pending', c.pending], ['approved', 'Approved', c.approved], ['rejected', 'Rejected', c.rejected], ['', 'All', c.pending + c.approved + c.rejected]];
+  $('kycSeg').innerHTML = tabs.map(([v, n, x]) => `<button data-v="${v}" aria-pressed="${v === kycFilter}">${n}<span class="n">${x}</span></button>`).join('');
+  $('kycSeg').querySelectorAll('button').forEach((b) => { b.onclick = () => { kycFilter = b.dataset.v; loadKyc().catch((e) => toast(e.message)); }; });
+  $('kycRows').innerHTML = kycList.length ? kycList.map((k, i) => `<tr class="click" data-i="${i}" tabindex="0">
+    <td><div class="who2"><span class="avatar">${initial(k.fullName || k.name)}</span><div><div class="n">${esc(k.name)}</div><div class="mono muted">${esc(k.id)}</div></div></div></td>
+    <td>${esc(k.fullName)}</td><td>${esc(DOC[k.docType] || k.docType)}<div class="mono muted">${esc(k.docNumber)}</div></td><td>${esc(k.country)}</td>
+    <td>${ago(k.submittedAt)}</td><td>${pill(k.status)}</td></tr>`).join('') : `<tr><td colspan="6"><div class="empty">${ico('shield')}<b>${kycFilter === 'pending' ? 'Nothing to review' : 'No checks here'}</b>${kycFilter === 'pending' ? 'New identity checks appear here.' : 'Try another filter.'}</div></td></tr>`;
+  $('kycRows').querySelectorAll('tr.click').forEach((r) => {
+    r.onclick = () => openKyc(kycList[+r.dataset.i]);
+    r.onkeydown = (e) => { if (e.key === 'Enter') r.click(); };
+  });
+}
+const REASONS = ['Photo is blurry', 'Document is expired', 'Name does not match the document', 'Selfie does not match the document', 'Document number is unreadable'];
+let lastFocus = null;
+function openKyc(k) {
+  lastFocus = document.activeElement;
+  const ph = (f, label) => (k.files.includes(f) ? `<button data-src="/api/admin/kyc/${encodeURIComponent(k.id)}/${f}" aria-label="Open ${label}"><img loading="lazy" src="/api/admin/kyc/${encodeURIComponent(k.id)}/${f}" alt="${label}"><span>${label}</span></button>` : '');
+  const open = k.status === 'pending';
+  $('drawer').innerHTML = `
+    <div class="dh"><span class="avatar" style="width:46px;height:46px;font-size:18px">${initial(k.fullName || k.name)}</span>
+      <div><h2>${esc(k.fullName)}</h2><div class="muted">Telegram ${esc(k.name)} · <span class="mono">${esc(k.id)}</span></div><div style="margin-top:6px">${pill(k.status)}</div></div>
+      <button class="btn sm x" id="dClose" aria-label="Close">Close</button></div>
+    <div class="db">
+      <div class="kv">
+        <div><div class="k">Date of birth</div><div class="v">${esc(k.dob)}</div></div><div><div class="k">Country</div><div class="v">${esc(k.country)}</div></div>
+        <div><div class="k">Document</div><div class="v">${esc(DOC[k.docType] || k.docType)}</div></div><div><div class="k">Document number</div><div class="v mono" style="font-size:14px">${esc(k.docNumber)}</div></div>
+        <div><div class="k">Submitted</div><div class="v">${when(k.submittedAt)}<div class="muted" style="font-weight:400">Attempt ${k.attempts} of 5</div></div></div>
+        <div><div class="k">Reviewed</div><div class="v">${k.reviewedAt ? `${when(k.reviewedAt)}<div class="muted" style="font-weight:400">by ${esc(k.reviewedBy)}</div>` : 'Not yet'}</div></div>
+      </div>
+      <div class="photos">${ph('front', 'Document front')}${ph('back', 'Document back')}${ph('selfie', 'Selfie')}</div>
+      ${k.reason ? `<div class="callout bad">Reason given to the player: ${esc(k.reason)}</div>` : ''}
+      <div class="callout" style="margin-top:10px">Check that the name and date of birth match the document, the document is valid and readable, and the selfie matches the photo on it.</div>
+    </div>
+    <div class="df">
+      <div class="muted" style="font-size:12.5px">Reason (needed to reject, the player sees it)</div>
+      <div class="chips" id="chips">${REASONS.map((r) => `<button type="button">${r}</button>`).join('')}</div>
+      <textarea class="reason" id="rejReason" rows="2" maxlength="200" placeholder="Tell the player what to fix"></textarea>
+      <div class="btns">${open || k.status === 'rejected' ? '<button class="btn danger" id="rejBtn">Reject</button>' : ''}<button class="btn ok" id="appBtn" ${k.status === 'approved' ? 'disabled' : ''}>${k.status === 'approved' ? 'Approved' : 'Approve'}</button></div>
+    </div>`;
+  $('scrim').classList.add('on'); $('drawer').classList.add('on'); $('drawer').setAttribute('aria-hidden', 'false');
+  $('dClose').focus();
+  $('dClose').onclick = closeDrawer;
+  $('chips').querySelectorAll('button').forEach((b) => { b.onclick = () => { $('rejReason').value = b.textContent; $('rejReason').focus(); }; });
+  $('drawer').querySelectorAll('.photos button').forEach((b) => { b.onclick = () => { $('lightbox').querySelector('img').src = b.dataset.src; $('lightbox').classList.add('on'); }; });
+  const act = async (action) => {
+    const btns = $('drawer').querySelectorAll('.btns button'); btns.forEach((b) => (b.disabled = true));
+    try { await api('/kyc/' + encodeURIComponent(k.id), { action, reason: $('rejReason').value }); toast(action === 'approve' ? 'Player approved' : 'Check rejected'); closeDrawer(); summary = null; load(); }
+    catch (e) { toast(e.message); btns.forEach((b) => (b.disabled = false)); if (k.status === 'approved') $('appBtn').disabled = true; }
+  };
+  $('appBtn').onclick = () => act('approve');
+  if ($('rejBtn')) $('rejBtn').onclick = () => { if (!$('rejReason').value.trim()) { toast('Add a reason so the player knows what to fix'); $('rejReason').focus(); return; } act('reject'); };
+}
+function closeDrawer() {
+  $('scrim').classList.remove('on'); $('drawer').classList.remove('on'); $('drawer').setAttribute('aria-hidden', 'true');
+  $('lightbox').classList.remove('on'); closeDialog();
+  if (lastFocus && lastFocus.focus) { try { lastFocus.focus(); } catch (e) {} } lastFocus = null;
+}
+$('scrim').onclick = closeDrawer;
+$('lightbox').onclick = () => $('lightbox').classList.remove('on');
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  if ($('lightbox').classList.contains('on')) $('lightbox').classList.remove('on');
+  else if ($('dialog').classList.contains('on')) closeDialog();
+  else closeDrawer();
+});
+
+// ---------- confirm dialog ----------
+function closeDialog() { $('dialog').classList.remove('on'); }
+function confirmBox(title, text, okLabel, danger) {
+  return new Promise((res) => {
+    $('dialog').innerHTML = `<h3>${esc(title)}</h3><p>${esc(text)}</p><div class="btns"><button class="btn" id="dNo">Cancel</button><button class="btn ${danger ? 'danger solid' : 'primary'}" id="dYes">${esc(okLabel)}</button></div>`;
+    $('dialog').classList.add('on'); $('scrim').classList.add('on'); $('dNo').focus();
+    const done = (v) => { closeDialog(); if (!$('drawer').classList.contains('on')) $('scrim').classList.remove('on'); res(v); };
+    $('dNo').onclick = () => done(false); $('dYes').onclick = () => done(true);
+  });
+}
+
+// ---------- players ----------
 $('userQ').oninput = $('userKyc').onchange = renderUsers;
 async function loadUsers() { users = await api('/users'); renderUsers(); }
 function renderUsers() {
   const q = $('userQ').value.trim().toLowerCase(), ks = $('userKyc').value;
   const rows = users.filter((u) => (!ks || u.kyc === ks) && (!q || `${u.name} ${u.id} ${u.wallet || ''}`.toLowerCase().includes(q)));
+  $('userCount').textContent = `${rows.length} of ${users.length} players`;
   $('userRows').innerHTML = rows.length ? rows.map((u) => `<tr>
-    <td><b>${esc(u.name)}</b> ${u.online ? '<span class="pill on">online</span>' : ''} ${u.banned ? '<span class="pill banned">suspended</span>' : ''}<div class="mono muted">${esc(u.id)}</div></td>
-    <td>${pill(u.kyc)}</td><td class="mono">${esc(short(u.wallet))}</td><td>${fmt(u.balance)}</td><td>${u.games}</td><td>${u.wins} / ${u.losses} / ${u.draws}</td>
-    <td class="${u.net > 0 ? 'pos' : u.net < 0 ? 'neg' : ''}">${u.net > 0 ? '+' : ''}${fmt(u.net)}</td><td>${u.createdAt ? ago(u.createdAt) : '-'}</td>
-    <td><button class="b" data-id="${esc(u.id)}" data-ban="${u.banned ? 0 : 1}">${u.banned ? 'Reinstate' : 'Suspend'}</button></td></tr>`).join('') : '<tr><td colspan="9" class="empty">No players match</td></tr>';
+    <td><div class="who2"><span class="avatar">${initial(u.name)}</span><div><div class="n">${esc(u.name)} ${u.online ? pill('online', 'Online') : ''} ${u.banned ? pill('suspended', 'Suspended') : ''}</div><div class="mono muted">${esc(u.id)}</div></div></div></td>
+    <td>${pill(u.kyc)}</td><td class="mono">${esc(short(u.wallet))}</td><td class="r">${fmt(u.balance)}</td><td class="r">${u.games}</td><td>${u.wins} / ${u.losses} / ${u.draws}</td>
+    <td class="r ${u.net > 0 ? 'pos' : u.net < 0 ? 'neg' : ''}">${u.net > 0 ? '+' : ''}${fmt(u.net)}</td><td>${u.createdAt ? ago(u.createdAt) : '-'}</td>
+    <td><button class="btn sm ${u.banned ? '' : 'danger'}" data-id="${esc(u.id)}" data-ban="${u.banned ? 0 : 1}" data-name="${esc(u.name)}">${u.banned ? 'Reinstate' : 'Suspend'}</button></td></tr>`).join('') : `<tr><td colspan="9"><div class="empty">${ico('users')}<b>No players match</b>Change the search or filter.</div></td></tr>`;
   $('userRows').querySelectorAll('button[data-id]').forEach((b) => {
     b.onclick = async () => {
-      if (b.dataset.ban === '1' && !confirm('Suspend this player? They will not be able to join games.')) return;
-      try { await api(`/users/${encodeURIComponent(b.dataset.id)}/ban`, { banned: b.dataset.ban === '1' }); toast('Updated'); loadUsers(); } catch (e) { toast(e.message); }
+      const ban = b.dataset.ban === '1';
+      if (ban && !(await confirmBox(`Suspend ${b.dataset.name}?`, 'They will not be able to join or start games until you reinstate them.', 'Suspend player', true))) return;
+      try { await api(`/users/${encodeURIComponent(b.dataset.id)}/ban`, { banned: ban }); toast(ban ? 'Player suspended' : 'Player reinstated'); loadUsers(); } catch (e) { toast(e.message); }
     };
   });
 }
 
 // ---------- games ----------
-async function loadGames() {
-  const g = await api('/games');
-  const res = (x) => (x.winner === 'draw' ? 'Draw' : (x.winner === 'w' ? x.white : x.black).name + ' won');
-  $('gameRows').innerHTML = g.length ? g.map((x) => `<tr><td>${ago(x.at)}</td><td>${esc(x.white.name)}</td><td>${esc(x.black.name)}</td><td>${fmt(x.stake)}</td><td>${fmt(x.pot)}</td><td>${esc(res(x))}</td><td class="muted">${esc(x.reason)}</td><td>${x.moves}</td><td>${fmt(x.fee)}</td></tr>`).join('') : '<tr><td colspan="9" class="empty">No finished games yet</td></tr>';
+async function loadGames() { games = await api('/games'); renderGames(); }
+function renderGames() {
+  const f = { '': () => true, bot: (x) => x.white.id === 'bot' || x.black.id === 'bot', decided: (x) => x.winner !== 'draw', draw: (x) => x.winner === 'draw' };
+  const tabs = [['', 'All'], ['bot', 'Against bot'], ['decided', 'Decided'], ['draw', 'Draws']];
+  $('gameSeg').innerHTML = tabs.map(([v, n]) => `<button data-v="${v}" aria-pressed="${v === gameFilter}">${n}<span class="n">${games.filter(f[v]).length}</span></button>`).join('');
+  $('gameSeg').querySelectorAll('button').forEach((b) => { b.onclick = () => { gameFilter = b.dataset.v; renderGames(); }; });
+  const rows = games.filter(f[gameFilter]);
+  $('gameCount').textContent = `Showing the latest ${games.length}`;
+  const who = (p) => `<div class="who2"><span class="avatar ${p.id === 'bot' ? 'bot' : ''}" style="width:28px;height:28px;font-size:12px">${initial(p.name)}</span><span>${esc(p.name)}</span></div>`;
+  $('gameRows').innerHTML = rows.length ? rows.map((x) => { const w = winner(x); return `<tr><td>${ago(x.at)}</td><td>${who(x.white)}</td><td>${who(x.black)}</td><td class="r stake">${fmt(x.stake)} <small>TON</small></td><td class="r">${fmt(x.pot)}</td><td>${w ? `<b>${esc(w.name)}</b> ${pill('win', 'Won')}` : pill('draw', 'Draw')}</td><td class="muted">${esc(x.reason)}</td><td class="r">${x.moves}</td><td class="r">${fmt(x.fee)}</td></tr>`; }).join('') : `<tr><td colspan="9"><div class="empty">${ico('board')}<b>No games here</b>Completed games show up here.</div></td></tr>`;
 }
 
-load();
-setInterval(() => { if (tab === 'overview' && !$('modal').classList.contains('on')) load(); }, 15000);
+setInterval(() => { if (!$('appView').hidden && tab === 'overview' && !$('drawer').classList.contains('on') && !document.hidden) load(); }, 15000);
+boot();
 </script>
 </body>
 </html>

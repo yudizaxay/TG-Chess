@@ -88,32 +88,73 @@ module.exports = function mountAdmin(app, ctx) {
     res.json({ ok: true, status: u.kyc.status });
   });
 
-  // ---------- admin auth (HTTP Basic, set ADMIN_PASSWORD to enable) ----------
+  // ---------- admin auth: login page + signed session cookie (set ADMIN_PASSWORD to enable) ----------
+  const SESSION_MS = 12 * 3600 * 1000;
   const fails = new Map(); // ip -> { n, until }
   const sha = (x) => crypto.createHash('sha256').update(String(x)).digest();
+  const same = (a, b) => crypto.timingSafeEqual(sha(a), sha(b));
+  const adminUser = () => process.env.ADMIN_USER || 'admin';
+  // Changing the password or user name invalidates every open session.
+  const secret = () => crypto.createHash('sha256').update(`admin-session|${adminUser()}|${process.env.ADMIN_PASSWORD}`).digest();
+  const sign = (exp) => crypto.createHmac('sha256', secret()).update(String(exp)).digest('base64url');
+  const cookieOf = (req, name) => {
+    const m = new RegExp(`(?:^|;\\s*)${name}=([^;]+)`).exec(req.get('cookie') || '');
+    return m ? m[1] : '';
+  };
+  function hasSession(req) {
+    const [exp, mac] = cookieOf(req, 'adm').split('.');
+    if (!exp || !mac || !(Number(exp) > Date.now())) return false;
+    const want = sign(exp);
+    return mac.length === want.length && same(mac, want);
+  }
+  function locked(req) { const f = fails.get(req.ip); return !!(f && f.n >= 10 && f.until > Date.now()); }
+  function fail(req) { const f = fails.get(req.ip); fails.set(req.ip, { n: (f && f.until > Date.now() ? f.n : 0) + 1, until: Date.now() + 10 * 60 * 1000 }); }
+
   function adminAuth(req, res, next) {
     res.set({ 'Cache-Control': 'no-store', 'X-Robots-Tag': 'noindex, nofollow' });
     const pass = process.env.ADMIN_PASSWORD;
-    if (!pass) return res.status(503).type('text').send('Admin is disabled. Set ADMIN_PASSWORD on the server.');
-    const f = fails.get(req.ip);
-    if (f && f.n >= 10 && f.until > Date.now()) return res.status(429).type('text').send('Too many attempts. Try again later.');
+    if (!pass) return res.status(503).json({ error: 'Admin is disabled. Set ADMIN_PASSWORD on the server.' });
+    if (hasSession(req)) return next();
+    // HTTP Basic is still accepted for scripts and curl.
     const h = req.get('authorization') || '';
-    const [user, ...rest] = Buffer.from(h.replace(/^Basic /i, ''), 'base64').toString().split(':');
-    const ok = h.startsWith('Basic ')
-      && crypto.timingSafeEqual(sha(user), sha(process.env.ADMIN_USER || 'admin'))
-      && crypto.timingSafeEqual(sha(rest.join(':')), sha(pass));
-    if (!ok) {
-      if (h) fails.set(req.ip, { n: ((f && f.until > Date.now() ? f.n : 0) + 1), until: Date.now() + 10 * 60 * 1000 });
-      res.set('WWW-Authenticate', 'Basic realm="Chess Arena admin"');
-      return res.status(401).type('text').send('Authentication required');
+    if (h.startsWith('Basic ')) {
+      if (locked(req)) return res.status(429).json({ error: 'Too many attempts. Try again in 10 minutes.' });
+      const [user, ...rest] = Buffer.from(h.slice(6), 'base64').toString().split(':');
+      if (same(user, adminUser()) && same(rest.join(':'), pass)) { fails.delete(req.ip); return next(); }
+      fail(req);
     }
-    fails.delete(req.ip);
-    next();
+    res.status(401).json({ error: 'Sign in required' });
   }
 
-  app.get('/admin', adminAuth, (_req, res) => res.sendFile(path.join(__dirname, 'admin', 'index.html')));
+  // The page itself holds no data, so it is public; every data route below needs a session.
+  app.get('/admin', (_req, res) => {
+    res.set({ 'Cache-Control': 'no-store', 'X-Robots-Tag': 'noindex, nofollow' });
+    res.sendFile(path.join(__dirname, 'admin', 'index.html'));
+  });
+  app.get('/admin/logo.svg', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'pieces', 'cburnett', 'wN.svg')));
+
+  app.post('/api/admin/login', express.json({ limit: '2kb' }), (req, res) => {
+    res.set('Cache-Control', 'no-store');
+    const pass = process.env.ADMIN_PASSWORD;
+    if (!pass) return res.status(503).json({ error: 'Admin is disabled. Set ADMIN_PASSWORD on the server.' });
+    if (locked(req)) return res.status(429).json({ error: 'Too many attempts. Try again in 10 minutes.' });
+    const b = req.body || {};
+    if (!(same(b.username || '', adminUser()) & same(b.password || '', pass))) {
+      fail(req);
+      return res.status(401).json({ error: 'Wrong username or password' });
+    }
+    fails.delete(req.ip);
+    const exp = Date.now() + SESSION_MS;
+    res.cookie('adm', `${exp}.${sign(exp)}`, { httpOnly: true, sameSite: 'strict', secure: req.secure, path: '/api/admin', maxAge: SESSION_MS });
+    res.json({ ok: true, user: adminUser() });
+  });
+  app.post('/api/admin/logout', (_req, res) => {
+    res.clearCookie('adm', { path: '/api/admin' });
+    res.json({ ok: true });
+  });
   const api = express.Router();
   api.use(adminAuth, express.json({ limit: '10kb' }));
+  api.get('/me', (_req, res) => res.json({ user: adminUser() }));
 
   const kycView = (u) => {
     const k = u.kyc || {};
