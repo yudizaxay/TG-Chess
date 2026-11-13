@@ -55,7 +55,7 @@ module.exports = function startBot() {
     queue.set(chatId, (queue.get(chatId) || Promise.resolve()).then(run).catch((e) => console.warn('reply:', e.message)));
   }
 
-  // /start can carry a deep-link parameter (ref_<id> invite, ch_<id> challenge). It is passed to the WebApp as ?sp=
+  // /start can carry a deep-link parameter (ch_<id> challenge). It is passed to the WebApp as ?sp=
   const kbFor = (param) => {
     const u = new URL(url); u.searchParams.set('sp', param);
     return { inline_keyboard: [[{ text: param.startsWith('ch_') ? '⚔ Accept challenge' : '♟ Play Chess', web_app: { url: u.toString() } }]] };
@@ -64,7 +64,7 @@ module.exports = function startBot() {
     const param = match[1] || '';
     const text = param.startsWith('ch_')
       ? '⚔ *You have been challenged!*\n\nTap below to accept and play for the pot.'
-      : '♟ *Chess Arena*\n\nStake a small entry fee, play a match, and claim the pot straight from the game.\n\nNo opponent in 40s? You play our bot.';
+      : '♟ *Chess Arena*\n\nStake a small entry fee, play a match, and claim the pot straight from the game.\n\n🔐 First time? Quick identity verification (KYC) is required before you connect a wallet and play.';
     reply(msg, text, { parse_mode: 'Markdown', photo: true, ...(param ? { reply_markup: kbFor(param) } : {}) });
   });
 
@@ -72,7 +72,7 @@ module.exports = function startBot() {
 
   bot.onText(/^\/help/, (msg) => reply(
     msg,
-    '*How it works*\n1. Tap Play and connect your TON wallet\n2. Pay the entry fee to join a match\n3. No opponent in 40s? You play our bot\n4. Win and claim the pot (minus 5% fee) right from the game\n\nDraws refund your entry fee.\n\nCommands: /play to open the game, /start for the welcome message.',
+    '*How it works*\n1. Tap Play and complete the one-time identity verification (KYC)\n2. Connect your TON wallet\n3. Pay the entry fee to join a match\n4. No opponent in 40s? Your fee is refunded and you can play our bot for free\n5. Win and claim the pot (minus 5% fee) right from the game\n\nDraws refund your entry fee.\n\nCommands: /play to open the game, /start for the welcome message.',
     { parse_mode: 'Markdown' },
   ));
 

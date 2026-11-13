@@ -2,21 +2,21 @@
 
 Chess inside Telegram. Players connect a TON wallet, stake an entry fee, play a match and claim the pot straight from the game.
 
-**Try it:** [@ytgchess_bot](https://t.me/ytgchess_bot) on Telegram. Send `/start` and tap **Play Chess**.
+**Try it:** [@ytchesstest_bot](https://t.me/ytchesstest_bot) on Telegram. Send `/start` and tap **Play Chess**.
 
 > **Demo build.** Wallet connection is real (TON Connect), but payments, the escrow contract and balances are mocked. No real chain transactions or funds are involved.
 
 ## Features
 
 - **Telegram bot** with `/start`, `/play`, `/help` and a **Play** menu button that opens the WebApp. Each command removes the user's command and the bot's previous reply, so the chat stays clean
+- **KYC gate**: before connecting a wallet or playing, a player submits name, date of birth, country, ID type and number, a photo of the document and a selfie holding it (18+, consent required). An admin approves or rejects with a reason; the player is notified in the app and by the bot
 - **TON Connect**: connect Tonkeeper, Wallet in Telegram or any TON Connect wallet. The address is saved on the player's profile and is required to play
 - **Staked matches**: choose 0.5 / 1 / 5 TON entry (demo balance), pot = 2 × entry, winner claims the pot minus a 5% platform fee. A draw refunds the entry fee. Each stake has its own queue
-- **Matchmaking**: waits 40s for a human opponent, otherwise plays against the built-in bot (which stakes too). Bot level: Easy / Medium / Hard
+- **Matchmaking**: waits 40s for a human opponent. If nobody joins, the entry fee is refunded and the player is asked whether to play the built-in bot instead. That game is free practice: no stake, no pot, no claim, and it does not count in stats, history, the leaderboard or fees. Bot level: Easy / Medium / Hard
 - **Challenge a friend**: private match link (`/start ch_<id>`), the friend pays the same stake and the game starts
-- **Invite & referral**: share link gives both players +2 TON when a new user joins
 - **Leaderboard** (Ranks tab) by TON won, **daily bonus** with a streak (1 to 4 TON)
 - **Game extras**: draw offers, rematch, move review after the game, material count, share-your-win button, haptic feedback
-- **Banner image**: the welcome message and the share cards (win, invite, challenge) carry `public/banner.jpg`. Sharing uses Telegram's own share dialog (Bot API 8.0 prepared messages) and falls back to a plain link on older clients
+- **Banner image**: the welcome message and the share cards (win, challenge) carry `public/banner.jpg`. Sharing uses Telegram's own share dialog (Bot API 8.0 prepared messages) and falls back to a plain link on older clients
 - **Offline notifications**: the bot messages players who closed the app (match found, your move, result, rematch)
 - **Chess**: server-authoritative move validation, check / checkmate / stalemate / draw detection, 5 min clocks, resign, legal-move hints, sound effects, board and piece-set picker (5 piece sets) on the game, search and settings screens
 - **Lobby, History & Income, Settings**: stats, net profit, winnings, fees, win rate, per-game results, wallet info, test-TON faucet
@@ -52,7 +52,11 @@ cp .env.example .env     # then set BOT_TOKEN
 | `BOT_TOKEN` | Telegram bot token |
 | `WEBAPP_URL` | Public https URL of this server. Optional on Render (it falls back to `RENDER_EXTERNAL_URL`), set automatically by `dev.sh` |
 | `PORT` | Server port, default `3000` |
-| `BOT_USERNAME` | Bot username used in invite and challenge links, default `ytgchess_bot` |
+| `ADMIN_USER` / `ADMIN_PASSWORD` | Login for the admin dashboard at `/admin`. The dashboard stays disabled (503) until `ADMIN_PASSWORD` is set |
+| `DATA_DIR` | Folder for `data.json`, `games.json` and `kyc/` (point it at a persistent disk to keep data across deploys), default project folder |
+| `KYC_AUTO_APPROVE` | `1` approves every KYC submission automatically (demo shortcut), default off |
+| `ALLOW_GUESTS` | `1` allows non-Telegram sessions for local browser testing only |
+| `BOT_USERNAME` | Bot username used in challenge and share links, default `ytchesstest_bot` |
 
 ## Run locally
 
@@ -84,11 +88,23 @@ Without a tunnel, `npm run dev` serves on `http://localhost:3000`. The bot stays
 | `server.js` | HTTP + WebSocket server, matchmaking, game state, mock wallet and claim logic, persistence |
 | `engine.js` | Material-based bot opponent with Easy / Medium / Hard levels |
 | `bot.js` | Telegram bot (`/start`, `/play`, `/help`, menu button, chat cleanup) |
+| `admin.js` | KYC submission API and the admin API with its login |
+| `admin/index.html` | Admin dashboard (served only at `/admin`, behind the login) |
 | `public/` | WebApp: `index.html`, `style.css`, `app.js`, `banner.jpg`, `pieces/`, `ton.svg`, `ton-icon.png`, `vendor/tonconnect-ui.min.js` |
 | `dev.sh` | Local tunnel + server launcher |
 | `render.yaml` | Render blueprint |
-| `data.json` | Runtime only: balances, stats, history, wallet addresses (gitignored) |
+| `data.json` | Runtime only: balances, stats, history, wallet addresses, KYC details (gitignored) |
+| `games.json` | Runtime only: last 500 finished games for the dashboard (gitignored) |
+| `kyc/` | Runtime only: uploaded identity documents (gitignored, personal data) |
 | `bot-state.json` | Runtime only: last bot reply per chat, used for chat cleanup (gitignored) |
+
+## KYC and admin dashboard
+
+- **Player flow**: Play (or the KYC card in the lobby) opens the verification form. Photos are resized in the browser and uploaded over HTTPS to `POST /api/kyc`, authenticated with the signed Telegram `initData`. The server checks the fields, the age, and the real image type (JPG or PNG, 3 MB max each). Status goes `none → pending → approved / rejected`; a rejected player can fix and resubmit (5 attempts).
+- **Gate**: the server refuses wallet connect, joining a queue, accepting a challenge and rematch until the player is `approved`, and for suspended players. The client also hides the TON Connect button until then.
+- **Storage**: documents are written to `kyc/<player id>/` (not under `public/`, never served statically, gitignored). Personal details live in `data.json` and are never sent to other players or in the profile message.
+- **Admin dashboard**: open `/admin` and sign in with `ADMIN_USER` / `ADMIN_PASSWORD` (HTTP Basic, 10 failed attempts lock an IP for 10 minutes, use HTTPS only). Tabs: **Overview** (players, online, KYC counts, active games, volume, fees, 7-day chart), **KYC** (review queue with document photos, approve or reject with a reason), **Users** (search, KYC state, wallet, balance, stats, suspend or reinstate) and **Games** (last 200, with fee).
+- **Demo vs production**: this is manual review. For a real launch use a KYC provider (document and liveness checks, sanctions and PEP screening), encrypt documents at rest, set a retention period, and keep them on durable storage. On Render's free plan the disk is wiped on every deploy, so submissions are lost then.
 
 ## TON Connect
 
@@ -103,7 +119,7 @@ The mock layer is isolated in `server.js` (`fakeHash`, the fee deduction in `joi
 ## Notes
 
 - Telegram `initData` is verified server-side, and the app only works inside Telegram. In a normal browser it shows an "Open in Telegram" screen and the server rejects the connection. For local browser testing, set `ALLOW_GUESTS=1` and open the page with `?guest=1`.
-- Invite and challenge links use `t.me/<bot>?start=<param>`, which opens the bot chat; the bot replies with a button that opens the WebApp with `?sp=<param>`. No extra BotFather setup is needed.
+- Challenge links use `t.me/<bot>?start=<param>`, which opens the bot chat; the bot replies with a button that opens the WebApp with `?sp=<param>`. No extra BotFather setup is needed.
 - The Hard bot thinks for about 0.5 to 1.5 s per move on a laptop and blocks the Node event loop meanwhile; fine for a demo, move it to a worker for real use.
 - Game state lives in memory. A server restart ends running games and drops unclaimed winnings; balances and history are kept in `data.json`.
 - Never commit `.env`. Revoke and rotate the bot token (BotFather → `/revoke`) if it has been shared.

@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Chess Arena Admin</title>
+<style>
+:root { --bg:#0b1220; --panel:#121a2c; --panel2:#18223a; --line:#24304d; --text:#e8eefc; --muted:#8c9bbd; --accent:#2aabee; --ok:#4cd08a; --warn:#f0b35a; --bad:#ff6b7a; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 20px; border-bottom: 1px solid var(--line); background: var(--panel); position: sticky; top: 0; z-index: 5; flex-wrap: wrap; }
+.brand { font-weight: 700; font-size: 16px; display: flex; gap: 8px; align-items: center; }
+.brand i { width: 26px; height: 26px; border-radius: 8px; background: var(--accent); display: inline-grid; place-items: center; color: #04152e; font-style: normal; }
+nav { display: flex; gap: 4px; flex-wrap: wrap; }
+nav button { background: none; border: 0; color: var(--muted); padding: 8px 14px; border-radius: 10px; font: 600 13px system-ui; cursor: pointer; }
+nav button.on { background: var(--panel2); color: var(--text); }
+nav .n { background: var(--bad); color: #fff; border-radius: 9px; padding: 0 6px; margin-left: 6px; font-size: 11px; }
+main { max-width: 1180px; margin: 0 auto; padding: 20px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; }
+.card .k { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .06em; }
+.card .v { font-size: 26px; font-weight: 700; margin-top: 4px; }
+.card .s { color: var(--muted); font-size: 12px; margin-top: 2px; }
+h2 { font-size: 15px; margin: 26px 0 10px; }
+.bars { display: flex; align-items: flex-end; gap: 10px; height: 110px; padding: 6px 0; }
+.bar { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 4px; height: 100%; font-size: 11px; color: var(--muted); }
+.bar div { width: 100%; background: var(--accent); border-radius: 6px 6px 0 0; min-height: 2px; }
+.tablewrap { overflow-x: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; }
+table { width: 100%; border-collapse: collapse; min-width: 720px; }
+th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th { color: var(--muted); font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }
+tr:last-child td { border-bottom: 0; }
+tr.click { cursor: pointer; } tr.click:hover td { background: var(--panel2); }
+.pill { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; background: var(--panel2); color: var(--muted); }
+.pill.approved, .pill.on { background: #123826; color: var(--ok); }
+.pill.pending { background: #3a2c12; color: var(--warn); }
+.pill.rejected, .pill.banned { background: #3a1820; color: var(--bad); }
+.mono { font-family: ui-monospace, Menlo, monospace; font-size: 12px; }
+.muted { color: var(--muted); }
+.pos { color: var(--ok); } .neg { color: var(--bad); }
+.bar-tools { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+input, select, textarea { background: var(--panel); border: 1px solid var(--line); color: var(--text); border-radius: 10px; padding: 9px 12px; font: inherit; }
+textarea { width: 100%; resize: vertical; }
+button.b { border: 0; border-radius: 10px; padding: 9px 16px; font: 600 13px system-ui; cursor: pointer; background: var(--panel2); color: var(--text); }
+button.b.ok { background: var(--ok); color: #05210f; } button.b.bad { background: var(--bad); color: #2a0509; } button.b.acc { background: var(--accent); color: #04152e; }
+.modal { position: fixed; inset: 0; background: #000b; display: none; align-items: flex-start; justify-content: center; padding: 28px 14px; overflow-y: auto; z-index: 20; }
+.modal.on { display: flex; }
+.sheet { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; width: 100%; max-width: 820px; padding: 20px; }
+.sheet h3 { margin: 0 0 4px; }
+.kv { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px 18px; margin: 14px 0; }
+.kv span { display: block; color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; }
+.imgs { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin: 12px 0; }
+.imgs figure { margin: 0; } .imgs img { width: 100%; border-radius: 10px; border: 1px solid var(--line); background: #000; cursor: zoom-in; }
+.imgs figcaption { color: var(--muted); font-size: 12px; margin-top: 4px; }
+.actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; margin-top: 14px; }
+.actions .grow { flex: 1; min-width: 220px; }
+.note { background: var(--panel2); border-radius: 10px; padding: 10px 12px; color: var(--muted); font-size: 12.5px; margin-top: 12px; }
+.empty { text-align: center; padding: 28px; color: var(--muted); }
+#toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--panel2); border: 1px solid var(--line); padding: 10px 16px; border-radius: 12px; display: none; z-index: 40; }
+</style>
+</head>
+<body>
+<header>
+  <div class="brand"><i>♞</i>Chess Arena · Admin</div>
+  <nav id="nav">
+    <button data-t="overview" class="on">Overview</button>
+    <button data-t="kyc">KYC<span class="n" id="kycBadge" hidden>0</span></button>
+    <button data-t="users">Users</button>
+    <button data-t="games">Games</button>
+  </nav>
+</header>
+<main>
+  <section id="overview"></section>
+  <section id="kyc" hidden>
+    <div class="bar-tools">
+      <select id="kycFilter"><option value="pending">Pending review</option><option value="approved">Approved</option><option value="rejected">Rejected</option><option value="">All submissions</option></select>
+      <button class="b" id="kycReload">Refresh</button>
+    </div>
+    <div class="tablewrap"><table><thead><tr><th>Player</th><th>Name on document</th><th>Document</th><th>Country</th><th>Submitted</th><th>Status</th></tr></thead><tbody id="kycRows"></tbody></table></div>
+  </section>
+  <section id="users" hidden>
+    <div class="bar-tools"><input id="userQ" placeholder="Search name, id or wallet" size="30"><select id="userKyc"><option value="">All KYC states</option><option value="none">Not started</option><option value="pending">Pending</option><option value="approved">Approved</option><option value="rejected">Rejected</option></select></div>
+    <div class="tablewrap"><table><thead><tr><th>Player</th><th>KYC</th><th>Wallet</th><th>Balance</th><th>Games</th><th>W / L / D</th><th>Net</th><th>Joined</th><th></th></tr></thead><tbody id="userRows"></tbody></table></div>
+  </section>
+  <section id="games" hidden>
+    <div class="tablewrap"><table><thead><tr><th>When</th><th>White</th><th>Black</th><th>Stake</th><th>Pot</th><th>Result</th><th>Reason</th><th>Moves</th><th>Fee</th></tr></thead><tbody id="gameRows"></tbody></table></div>
+  </section>
+</main>
+
+<div class="modal" id="modal"><div class="sheet" id="sheet"></div></div>
+<div id="toast"></div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const ago = (t) => { if (!t) return '-'; const m = Math.floor((Date.now() - t) / 60000); return m < 1 ? 'just now' : m < 60 ? `${m}m ago` : m < 1440 ? `${Math.floor(m / 60)}h ago` : `${Math.floor(m / 1440)}d ago`; };
+const when = (t) => (t ? new Date(t).toLocaleString() : '-');
+const fmt = (n) => Number(n || 0).toFixed(2);
+const DOC = { passport: 'Passport', national_id: 'National ID', driving_licence: 'Driving licence' };
+const short = (a) => (a ? a.slice(0, 6) + '…' + a.slice(-6) : '-');
+const pill = (s) => `<span class="pill ${esc(s)}">${esc({ none: 'not started' }[s] || s)}</span>`;
+function toast(m) { const t = $('toast'); t.textContent = m; t.style.display = 'block'; clearTimeout(toast.t); toast.t = setTimeout(() => (t.style.display = 'none'), 2600); }
+async function api(path, body) {
+  const r = await fetch('/api/admin' + path, body ? { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) } : {});
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error || r.statusText);
+  return j;
+}
+
+// ---------- tabs ----------
+let tab = 'overview', users = [], kycList = [];
+document.querySelectorAll('#nav button').forEach((b) => { b.onclick = () => go(b.dataset.t); });
+function go(t) {
+  tab = t;
+  document.querySelectorAll('#nav button').forEach((b) => b.classList.toggle('on', b.dataset.t === t));
+  ['overview', 'kyc', 'users', 'games'].forEach((s) => ($(s).hidden = s !== t));
+  load();
+}
+async function load() {
+  try {
+    if (tab === 'overview') await loadOverview();
+    if (tab === 'kyc') await loadKyc();
+    if (tab === 'users') await loadUsers();
+    if (tab === 'games') await loadGames();
+  } catch (e) { toast(e.message); }
+}
+
+// ---------- overview ----------
+async function loadOverview() {
+  const s = await api('/summary');
+  const k = s.kyc, max = Math.max(1, ...s.days.map((d) => d.games));
+  $('kycBadge').hidden = !k.pending; $('kycBadge').textContent = k.pending;
+  const c = (t, v, sub) => `<div class="card"><div class="k">${t}</div><div class="v">${v}</div><div class="s">${sub || ''}</div></div>`;
+  $('overview').innerHTML = `<div class="grid">
+    ${c('Players', s.users, `${s.online} online now`)}
+    ${c('KYC pending', k.pending, k.pending ? 'needs review' : 'all clear')}
+    ${c('KYC approved', k.approved, `${k.rejected} rejected · ${k.none} not started`)}
+    ${c('Wallets linked', s.withWallet, `${s.banned} suspended`)}
+    ${c('Active games', s.activeGames, `${s.queued} waiting for opponent`)}
+    ${c('Games played', s.games, `${s.decided} decided, ${s.games - s.decided} drawn`)}
+    ${c('Volume (TON)', fmt(s.volume), 'total pots, demo funds')}
+    ${c('Platform fees (TON)', fmt(s.fees), '5% of decided pots')}
+    ${c('Player balances (TON)', fmt(s.balances), 'demo funds in circulation')}
+  </div>
+  <h2>Games, last 7 days</h2>
+  <div class="card"><div class="bars">${s.days.map((d) => `<div class="bar">${d.games}<div style="height:${Math.round((d.games / max) * 78)}px"></div>${esc(d.day)}</div>`).join('')}</div></div>
+  <div class="note">Payments are mocked in this demo build, so volume and fees are test numbers. Game history keeps the last 500 games.</div>`;
+}
+
+// ---------- KYC ----------
+$('kycFilter').onchange = $('kycReload').onclick = loadKyc;
+async function loadKyc() {
+  kycList = await api('/kyc?status=' + encodeURIComponent($('kycFilter').value));
+  $('kycRows').innerHTML = kycList.length ? kycList.map((k, i) => `<tr class="click" data-i="${i}">
+    <td><b>${esc(k.name)}</b><div class="mono muted">${esc(k.id)}</div></td><td>${esc(k.fullName)}</td>
+    <td>${esc(DOC[k.docType] || k.docType)}<div class="mono muted">${esc(k.docNumber)}</div></td><td>${esc(k.country)}</td>
+    <td>${ago(k.submittedAt)}</td><td>${pill(k.status)}</td></tr>`).join('') : '<tr><td colspan="6" class="empty">No submissions here</td></tr>';
+  $('kycRows').querySelectorAll('tr.click').forEach((r) => { r.onclick = () => openKyc(kycList[+r.dataset.i]); });
+  const all = await api('/kyc?status=pending'); $('kycBadge').hidden = !all.length; $('kycBadge').textContent = all.length;
+}
+function openKyc(k) {
+  const img = (f, label) => (k.files.includes(f) ? `<figure><a href="/api/admin/kyc/${encodeURIComponent(k.id)}/${f}" target="_blank" rel="noopener"><img src="/api/admin/kyc/${encodeURIComponent(k.id)}/${f}" alt="${label}"></a><figcaption>${label}</figcaption></figure>` : '');
+  $('sheet').innerHTML = `<div style="display:flex;justify-content:space-between;gap:10px"><div><h3>${esc(k.fullName)}</h3><div class="muted">Telegram: ${esc(k.name)} · <span class="mono">${esc(k.id)}</span></div></div><div>${pill(k.status)}</div></div>
+    <div class="kv">
+      <div><span>Date of birth</span>${esc(k.dob)}</div><div><span>Country</span>${esc(k.country)}</div>
+      <div><span>Document</span>${esc(DOC[k.docType] || k.docType)}</div><div><span>Document number</span><span class="mono" style="color:var(--text);font-size:14px;text-transform:none;letter-spacing:0">${esc(k.docNumber)}</span></div>
+      <div><span>Submitted</span>${when(k.submittedAt)} (attempt ${k.attempts})</div><div><span>Reviewed</span>${k.reviewedAt ? `${when(k.reviewedAt)} by ${esc(k.reviewedBy)}` : '-'}</div>
+    </div>
+    ${k.reason ? `<div class="note">Reason given: ${esc(k.reason)}</div>` : ''}
+    <div class="imgs">${img('front', 'Document, front')}${img('back', 'Document, back')}${img('selfie', 'Selfie')}</div>
+    <div class="note">Check: name and date of birth match the document, the document is valid and readable, and the selfie matches the photo on it.</div>
+    <div class="actions">
+      <div class="grow"><textarea id="rejReason" rows="2" placeholder="Reason (required to reject, shown to the player)"></textarea></div>
+      <button class="b bad" id="rejBtn">Reject</button><button class="b ok" id="appBtn">Approve</button><button class="b" id="closeBtn">Close</button>
+    </div>`;
+  $('modal').classList.add('on');
+  const act = async (action) => {
+    try { await api('/kyc/' + encodeURIComponent(k.id), { action, reason: $('rejReason').value }); toast(action === 'approve' ? 'Approved' : 'Rejected'); $('modal').classList.remove('on'); load(); }
+    catch (e) { toast(e.message); }
+  };
+  $('appBtn').onclick = () => act('approve'); $('rejBtn').onclick = () => act('reject'); $('closeBtn').onclick = () => $('modal').classList.remove('on');
+}
+$('modal').onclick = (e) => { if (e.target === $('modal')) $('modal').classList.remove('on'); };
+
+// ---------- users ----------
+$('userQ').oninput = $('userKyc').onchange = renderUsers;
+async function loadUsers() { users = await api('/users'); renderUsers(); }
+function renderUsers() {
+  const q = $('userQ').value.trim().toLowerCase(), ks = $('userKyc').value;
+  const rows = users.filter((u) => (!ks || u.kyc === ks) && (!q || `${u.name} ${u.id} ${u.wallet || ''}`.toLowerCase().includes(q)));
+  $('userRows').innerHTML = rows.length ? rows.map((u) => `<tr>
+    <td><b>${esc(u.name)}</b> ${u.online ? '<span class="pill on">online</span>' : ''} ${u.banned ? '<span class="pill banned">suspended</span>' : ''}<div class="mono muted">${esc(u.id)}</div></td>
+    <td>${pill(u.kyc)}</td><td class="mono">${esc(short(u.wallet))}</td><td>${fmt(u.balance)}</td><td>${u.games}</td><td>${u.wins} / ${u.losses} / ${u.draws}</td>
+    <td class="${u.net > 0 ? 'pos' : u.net < 0 ? 'neg' : ''}">${u.net > 0 ? '+' : ''}${fmt(u.net)}</td><td>${u.createdAt ? ago(u.createdAt) : '-'}</td>
+    <td><button class="b" data-id="${esc(u.id)}" data-ban="${u.banned ? 0 : 1}">${u.banned ? 'Reinstate' : 'Suspend'}</button></td></tr>`).join('') : '<tr><td colspan="9" class="empty">No players match</td></tr>';
+  $('userRows').querySelectorAll('button[data-id]').forEach((b) => {
+    b.onclick = async () => {
+      if (b.dataset.ban === '1' && !confirm('Suspend this player? They will not be able to join games.')) return;
+      try { await api(`/users/${encodeURIComponent(b.dataset.id)}/ban`, { banned: b.dataset.ban === '1' }); toast('Updated'); loadUsers(); } catch (e) { toast(e.message); }
+    };
+  });
+}
+
+// ---------- games ----------
+async function loadGames() {
+  const g = await api('/games');
+  const res = (x) => (x.winner === 'draw' ? 'Draw' : (x.winner === 'w' ? x.white : x.black).name + ' won');
+  $('gameRows').innerHTML = g.length ? g.map((x) => `<tr><td>${ago(x.at)}</td><td>${esc(x.white.name)}</td><td>${esc(x.black.name)}</td><td>${fmt(x.stake)}</td><td>${fmt(x.pot)}</td><td>${esc(res(x))}</td><td class="muted">${esc(x.reason)}</td><td>${x.moves}</td><td>${fmt(x.fee)}</td></tr>`).join('') : '<tr><td colspan="9" class="empty">No finished games yet</td></tr>';
+}
+
+load();
+setInterval(() => { if (tab === 'overview' && !$('modal').classList.contains('on')) load(); }, 15000);
+</script>
+</body>
+</html>

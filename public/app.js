@@ -13,7 +13,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 let guestId = '';
 try { guestId = localStorage.getItem('guestId') || (localStorage.setItem('guestId', Math.random().toString(36).slice(2, 10)), localStorage.getItem('guestId')); } catch { guestId = 'x' + Math.random().toString(36).slice(2, 8); }
 
-let ws, profile, entryFee = 1, houseCut = 0.05, waitMs = 40000, stakes = [0.5, 1, 5], botName = 'ytgchess_bot';
+let ws, profile, entryFee = 1, houseCut = 0.05, waitMs = 40000, stakes = [0.5, 1, 5], botName = 'ytchesstest_bot';
 let reviewIdx = null, challenge = null, challengeAsked = false, autoAccept = false;
 let game = null, gameRecvAt = 0, selected = null, countdownTimer = null;
 let walletMode = null; // 'join' | 'claim'
@@ -67,13 +67,17 @@ function onMessage(m) {
     setProfile(m.profile);
     const ch = /^ch_(\w+)$/.exec(startParam);
     if (ch && !challengeAsked) { challengeAsked = true; send({ t: 'challengeInfo', host: ch[1] }); }
-    if (tonReady && tonAddr !== (m.profile.wallet || null)) send({ t: 'wallet', address: tonAddr });
-    if (!game && !$('searching').classList.contains('active') && !onTab()) show('lobby');
+    if (tonReady && kycOk() && tonAddr !== (m.profile.wallet || null)) send({ t: 'wallet', address: tonAddr });
+    if (!game && !$('searching').classList.contains('active') && !$('kycScreen').classList.contains('active') && !onTab()) show('lobby');
   } else if (m.t === 'paid') {
     setProfile(m.profile);
     if (pending) pending(m);
   } else if (m.t === 'queue') {
     startCountdown(m.endsAt, m.invite);
+  } else if (m.t === 'noMatch') {
+    setProfile(m.profile); stopCountdown(); show('lobby');
+    $('noMatchText').textContent = `Nobody is online for a match right now. Your ${fmt(m.stake)} TON entry fee was refunded.`;
+    $('noMatch').classList.remove('hidden'); hap('notificationOccurred', 'warning');
   } else if (m.t === 'cancelled') {
     setProfile(m.profile); stopCountdown(); show('lobby'); toast('Entry fee refunded');
   } else if (m.t === 'game') {
@@ -128,7 +132,8 @@ function setProfile(p) {
   $('hRate').textContent = (p.games ? Math.round((p.wins / p.games) * 100) : 0) + '%';
   $('dailyBox').classList.toggle('hidden', !p.dailyReady);
   $('dailySub').textContent = p.streak ? `Day ${p.streak + 1} streak. Claim free test TON` : 'Claim free test TON';
-  $('refCount').textContent = p.referrals; $('streakCount').textContent = `${p.streak} day${p.streak === 1 ? '' : 's'}`;
+  $('streakCount').textContent = `${p.streak} day${p.streak === 1 ? '' : 's'}`;
+  renderKyc();
   $('sName').textContent = p.name; $('sAvatar').textContent = p.name[0].toUpperCase();
   $('sAddr').textContent = addr(); $('setFee').textContent = `${entryFee} TON`;
 }
@@ -169,23 +174,27 @@ const waitReply = () => new Promise((res) => { pending = (m) => { pending = null
 function closeWallet() { $('wallet').classList.add('hidden'); }
 
 $('playBtn').onclick = () => {
+  if (needKyc()) return;
   if (!tonAddr) return tonUI ? tonUI.openModal() : toast('TON Connect failed to load');
   if (profile.balance < entryFee) return toast('Insufficient balance');
   openWallet('join');
 };
 $('challengeBtn').onclick = () => {
+  if (needKyc()) return;
   if (!tonAddr) return tonUI ? tonUI.openModal() : toast('TON Connect failed to load');
   if (profile.balance < entryFee) return toast('Insufficient balance');
   openWallet('invite');
 };
 function promptAccept() { // walk the invited player through connect wallet -> pay, so opening the link is enough
   if (!challenge) return;
+  if (needKyc()) return;
   if (!tonAddr) return tonUI && tonUI.openModal();
   autoAccept = false;
   if (profile.balance < challenge.stake) return toast('Insufficient balance. Get test TON in Settings.');
   openWallet('accept', challenge.stake);
 }
 $('chAccept').onclick = () => {
+  if (needKyc()) return;
   if (!tonAddr) return tonUI ? tonUI.openModal() : toast('TON Connect failed to load');
   if (profile.balance < challenge.stake) return toast('Insufficient balance');
   openWallet('accept', challenge.stake);
@@ -202,7 +211,6 @@ function shareLink(link, text) {
   const url = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(text)}`;
   if (tg && tg.openTelegramLink) tg.openTelegramLink(url); else window.open(url, '_blank');
 }
-$('inviteBtn').onclick = () => shareRich('invite', 0, `https://t.me/${botName}?start=ref_${profile.id}`, '♟ Play chess for TON with me on Chess Arena. Join through my link and we both get +2 TON.');
 $('shareChallenge').onclick = () => shareRich('challenge', 0, `https://t.me/${botName}?start=ch_${profile.id}`, `⚔ I challenge you to a chess match on Chess Arena. Entry ${entryFee} TON, winner takes the pot.`);
 $('walletReject').onclick = closeWallet;
 $('walletConfirm').onclick = async () => {
@@ -237,7 +245,7 @@ function startCountdown(endsAt, invite) {
   show('searching'); stopCountdown();
   $('countdown').parentNode.classList.toggle('hidden', !!invite);
   $('shareChallenge').classList.toggle('hidden', !invite);
-  $('searchNote').textContent = invite ? 'Waiting for your friend to accept your challenge' : 'Bot joins if nobody shows up';
+  $('searchNote').textContent = invite ? 'Waiting for your friend to accept your challenge' : 'If nobody joins, your fee is refunded';
   if (invite) return;
   const tick = () => { $('countdown').textContent = Math.max(0, Math.ceil((endsAt - Date.now()) / 1000)); };
   tick(); countdownTimer = setInterval(tick, 250);
@@ -305,10 +313,11 @@ function render() {
   };
 
   const me = g.you === 'w' ? g.white : g.black, opp = g.you === 'w' ? g.black : g.white;
-  $('meName').textContent = me.name + ' (you)'; $('oppName').textContent = opp.name;
+  const vt = (p) => (p.verified ? '<i class="vt" title="KYC verified">✓</i>' : '');
+  $('meName').innerHTML = esc(me.name) + ' (you)' + vt(me); $('oppName').innerHTML = esc(opp.name) + vt(opp);
   $('oppAvatar').textContent = opp.id === 'bot' ? '🤖' : opp.name[0].toUpperCase();
   $('meAvatar').textContent = me.name[0].toUpperCase();
-  $('gPot').textContent = fmt(g.pot); $('gPrize').textContent = fmt(g.prize);
+  document.querySelector('.potbox').innerHTML = g.practice ? '🎮 Free practice game · no coins' : `Pot <b>${fmt(g.pot)}</b> · Winner <b>${fmt(g.prize)}</b> TON`;
   $('resignBtn').disabled = !!g.over;
 
   // captured pieces (what each side has taken)
@@ -362,9 +371,12 @@ function showResult() {
   $('resReason').textContent = g.over.reason;
   $('rematchNote').textContent = '';
   hap('notificationOccurred', draw ? 'warning' : won ? 'success' : 'error');
-  $('shareBtn').classList.toggle('hidden', !won);
+  $('shareBtn').classList.toggle('hidden', !won || g.practice);
+  $('rematchBtn').textContent = g.practice ? 'Play again (free)' : 'Rematch';
   $('claimTx').textContent = '';
-  if (g.claim) {
+  if (g.practice) {
+    $('resAmount').textContent = 'Free practice game · no coins'; $('claimBtn').classList.add('hidden');
+  } else if (g.claim) {
     $('resAmount').textContent = `${draw ? 'Refund ' : ''}${fmt(g.claim.amount)} TON`;
     $('claimBtn').textContent = draw ? 'Claim refund' : 'Claim winnings';
     $('claimBtn').classList.toggle('hidden', g.claim.claimed);
@@ -374,6 +386,7 @@ function showResult() {
   setTimeout(() => $('result').classList.remove('hidden'), 700);
 }
 $('rematchBtn').onclick = () => {
+  if (game.practice) return send({ t: 'rematch', gameId: game.id }); // free game, no payment popup
   if (profile.balance < game.stake) return toast('Insufficient balance');
   openWallet('rematch', game.stake);
 };
@@ -382,9 +395,89 @@ const rvGo = (i) => { reviewIdx = Math.max(0, Math.min(game.review.fens.length -
 $('rvFirst').onclick = () => rvGo(0); $('rvPrev').onclick = () => rvGo(reviewIdx - 1);
 $('rvNext').onclick = () => rvGo(reviewIdx + 1); $('rvLast').onclick = () => rvGo(1e6);
 $('rvBack').onclick = () => { reviewIdx = null; render(); $('result').classList.remove('hidden'); };
-$('shareBtn').onclick = () => { const amt = game.claim ? game.claim.amount : 0; shareRich('win', amt, `https://t.me/${botName}?start=ref_${profile.id}`, `🏆 I just won ${fmt(amt)} TON on Chess Arena! Think you can beat me?`); };
+$('shareBtn').onclick = () => { const amt = game.claim ? game.claim.amount : 0; shareRich('win', amt, `https://t.me/${botName}`, `🏆 I just won ${fmt(amt)} TON on Chess Arena! Think you can beat me?`); };
+$('practiceYes').onclick = () => { $('noMatch').classList.add('hidden'); send({ t: 'practice', level: settings.level }); };
+$('practiceNo').onclick = () => $('noMatch').classList.add('hidden');
 $('claimBtn').onclick = () => openWallet('claim', game.claim.amount);
 $('againBtn').onclick = () => { $('result').classList.add('hidden'); game = null; reviewIdx = null; send({ t: 'profile' }); show('lobby'); };
+
+// ---------- KYC ----------
+const kycStatus = () => (profile && profile.kyc && profile.kyc.status) || 'none';
+const kycOk = () => kycStatus() === 'approved';
+let prevKyc = null;
+function needKyc() { // KYC comes before wallet connect and before any paid action
+  if (kycOk()) return false;
+  toast('Verify your identity first'); openKyc(); return true;
+}
+function renderKyc() {
+  const st = kycStatus(), reason = profile.kyc.reason;
+  const bt = { approved: ['✓ Verified', 'ok'], pending: ['⏳ KYC in review', 'pend'], rejected: ['✖ KYC rejected', 'no'], none: ['KYC needed', 'no'] }[st];
+  for (const id of ['kBadge', 'sBadge']) { const el = $(id); el.textContent = bt[0]; el.className = `kbadge ${bt[1]}`; el.onclick = st === 'approved' ? null : openKyc; }
+  $('kycCard').classList.toggle('hidden', st === 'approved');
+  $('kycTitle').textContent = { none: 'Verify your identity', pending: 'Verification in review', rejected: 'Verification not approved' }[st] || '';
+  $('kycSub').textContent = { none: 'KYC is required before you can connect a wallet and play', pending: 'We will notify you when it is approved', rejected: reason || 'Tap to fix and submit again' }[st] || '';
+  $('kycOpen').textContent = { none: 'Start', pending: 'Status', rejected: 'Fix' }[st] || '';
+  $('setKyc').textContent = { none: 'Not verified', pending: 'In review', approved: 'Verified ✅', rejected: 'Rejected' }[st];
+  $('tonBtn').style.display = st === 'approved' ? '' : 'none'; // wallet connect only after KYC
+  if (prevKyc && prevKyc !== 'approved' && st === 'approved') { toast('Identity verified ✅ You can connect your wallet now'); hap('notificationOccurred', 'success'); }
+  if (prevKyc && prevKyc !== st && $('kycScreen').classList.contains('active')) renderKycScreen();
+  prevKyc = st;
+  if (typeof updateWalletUI === 'function' && $('playLbl')) updateWalletUI();
+}
+function openKyc() { renderKycScreen(); show('kycScreen'); }
+function renderKycScreen() {
+  const st = kycStatus(), box = $('kycState');
+  const info = {
+    pending: ['⏳', 'Verification in review', 'Our team is checking your documents. You will get a Telegram message when it is done.'],
+    approved: ['✅', 'You are verified', 'You can now connect your wallet and play.'],
+    rejected: ['❌', 'Not approved', profile.kyc.reason || 'Please check your documents and submit again.'],
+  }[st];
+  box.classList.toggle('hidden', !info);
+  $('kycForm').classList.toggle('hidden', st === 'pending' || st === 'approved');
+  if (info) box.innerHTML = `<div class="kstate"><div class="big">${info[0]}</div><h3>${info[1]}</h3><p>${esc(info[2])}</p>${st === 'approved' ? '<button class="btn primary" id="kycDone">Continue</button>' : ''}</div>`;
+  const done = $('kycDone'); if (done) done.onclick = () => show('lobby');
+}
+$('kycOpen').onclick = openKyc;
+$('kycBack').onclick = () => show('lobby');
+['Front', 'Back', 'Selfie'].forEach((k) => {
+  $('k' + k).onchange = (e) => {
+    const f = e.target.files[0], pv = $('pv' + k);
+    pv.classList.toggle('hidden', !f); if (f) pv.src = URL.createObjectURL(f);
+  };
+});
+async function toJpeg(file, max = 1400, q = 0.82) {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = () => rej(new Error('Could not read that photo. Try a JPG or PNG.')); i.src = url; });
+    const s = Math.min(1, max / Math.max(img.width, img.height));
+    const c = document.createElement('canvas'); c.width = Math.round(img.width * s); c.height = Math.round(img.height * s);
+    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+    return c.toDataURL('image/jpeg', q);
+  } finally { URL.revokeObjectURL(url); }
+}
+$('kycForm').onsubmit = async (e) => {
+  e.preventDefault();
+  const err = (m) => { $('kErr').textContent = m; $('kErr').classList.toggle('hidden', !m); };
+  err('');
+  if (!$('kName').value.trim() || !$('kDob').value || !$('kCountry').value.trim() || !$('kNumber').value.trim()) return err('Please fill in all the fields');
+  if (!$('kFront').files[0]) return err('Add a photo of the front of your document');
+  if (!$('kSelfie').files[0]) return err('Add a selfie holding your document');
+  if (!$('kConsent').checked) return err('Please accept the consent statement');
+  const btn = $('kSubmit'); btn.disabled = true; btn.textContent = 'Uploading…';
+  try {
+    const body = {
+      fullName: $('kName').value, dob: $('kDob').value, country: $('kCountry').value, docType: $('kType').value, docNumber: $('kNumber').value, consent: true,
+      front: await toJpeg($('kFront').files[0]), selfie: await toJpeg($('kSelfie').files[0]),
+    };
+    if ($('kBack').files[0]) body.back = await toJpeg($('kBack').files[0]);
+    const r = await fetch('/api/kyc', { method: 'POST', headers: { 'content-type': 'application/json', 'x-init-data': tg ? tg.initData : '', 'x-guest-id': guestId }, body: JSON.stringify(body) });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(j.error || 'Upload failed, please try again');
+    $('kycForm').reset(); ['Front', 'Back', 'Selfie'].forEach((k) => $('pv' + k).classList.add('hidden'));
+    toast(j.status === 'approved' ? 'Identity verified ✅' : 'Submitted. We will notify you soon.');
+    hap('notificationOccurred', 'success');
+  } catch (ex) { err(ex.message); } finally { btn.disabled = false; btn.textContent = 'Submit for verification'; }
+};
 
 // ---------- lobby chips + leaderboard ----------
 function buildChips() {
@@ -463,7 +556,7 @@ function updateWalletUI() {
   const on = !!tonAddr;
   $('balState').textContent = on ? 'Wallet connected' : 'Wallet not connected';
   $('balState').classList.toggle('ok', on);
-  $('playLbl').textContent = on ? 'Play for' : 'Connect wallet to play ·';
+  $('playLbl').textContent = !kycOk() ? 'Verify identity to play ·' : on ? 'Play for' : 'Connect wallet to play ·';
   $('setWalletState').textContent = on ? 'Connected' : 'Not connected';
   $('setWalletAddr').textContent = on ? shortAddr(tonAddr) : '-';
   $('sAddr').textContent = on ? shortAddr(tonAddr) : 'No wallet connected';
@@ -471,19 +564,19 @@ function updateWalletUI() {
   $('walletToggle').classList.toggle('primary', !on);
   $('walletToggle').classList.toggle('ghost', on);
 }
-$('walletToggle').onclick = () => { if (!tonUI) return toast('TON Connect failed to load'); tonAddr ? tonUI.disconnect() : tonUI.openModal(); };
+$('walletToggle').onclick = () => { if (!tonAddr && needKyc()) return; if (!tonUI) return toast('TON Connect failed to load'); tonAddr ? tonUI.disconnect() : tonUI.openModal(); };
 function initTon() {
   if (!window.TON_CONNECT_UI) { tonReady = false; return; }
   tonUI = new TON_CONNECT_UI.TonConnectUI({
     manifestUrl: `${location.origin}/tonconnect-manifest.json`,
     buttonRootId: 'tonBtn',
-    actionsConfiguration: { twaReturnUrl: 'https://t.me/ytgchess_bot' },
+    actionsConfiguration: { twaReturnUrl: 'https://t.me/ytchesstest_bot' },
   });
   tonUI.onStatusChange((w) => {
     tonAddr = w ? TON_CONNECT_UI.toUserFriendlyAddress(w.account.address, w.account.chain === '-3') : null;
     tonReady = true;
     updateWalletUI();
-    send({ t: 'wallet', address: tonAddr });
+    if (kycOk()) send({ t: 'wallet', address: tonAddr }); // the server only accepts wallets from verified players
     if (autoAccept && tonAddr) setTimeout(promptAccept, 600);
   });
 }

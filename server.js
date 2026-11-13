@@ -7,21 +7,24 @@ const { WebSocketServer } = require('ws');
 const { Chess } = require('chess.js');
 const { pickMove } = require('./engine');
 const startBot = require('./bot');
+const mountAdmin = require('./admin');
 
 const PORT = Number(process.env.PORT) || 3000;
 const BOT_TOKEN = process.env.BOT_TOKEN || '';
 const STAKES = [0.5, 1, 5]; // selectable entry fees (TON)
 const DEFAULT_STAKE = 1;
 const LEVELS = ['easy', 'medium', 'hard'];
-const BOT_USERNAME = process.env.BOT_USERNAME || 'ytgchess_bot';
-const REF_BONUS = 2; // TON for both sides of a referral
+const BOT_USERNAME = process.env.BOT_USERNAME || 'ytchesstest_bot';
 const CHALLENGE_WAIT_MS = 10 * 60 * 1000;
 const REMATCH_WAIT_MS = 30000;
 const HOUSE_CUT = 0.05;
 const START_BALANCE = 10; // demo TON balance
 const MATCH_WAIT_MS = 40000;
 const CLOCK_MS = 5 * 60 * 1000;
-const DATA_FILE = path.join(__dirname, 'data.json');
+const DATA_DIR = process.env.DATA_DIR || __dirname; // point at a persistent disk on the host to keep data across deploys
+fs.mkdirSync(DATA_DIR, { recursive: true });
+const DATA_FILE = path.join(DATA_DIR, 'data.json');
+const GAMES_FILE = path.join(DATA_DIR, 'games.json');
 
 const round4 = (n) => Math.round(n * 1e4) / 1e4;
 const fakeHash = () => '0x' + crypto.randomBytes(32).toString('hex');
@@ -29,22 +32,29 @@ const fakeHash = () => '0x' + crypto.randomBytes(32).toString('hex');
 // ---- persistence (users only; games are in-memory) ----
 let users = {};
 try { users = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8')); } catch { /* first run */ }
+let gamesLog = []; // finished games (last 500), shown in the admin dashboard
+try { gamesLog = JSON.parse(fs.readFileSync(GAMES_FILE, 'utf8')); } catch { /* first run */ }
 let saveTimer = null;
 function save() {
   clearTimeout(saveTimer);
-  saveTimer = setTimeout(() => fs.writeFile(DATA_FILE, JSON.stringify(users, null, 2), () => {}), 200);
+  saveTimer = setTimeout(() => {
+    fs.writeFile(DATA_FILE, JSON.stringify(users, null, 2), () => {});
+    fs.writeFile(GAMES_FILE, JSON.stringify(gamesLog), () => {});
+  }, 200);
 }
 const today = () => Math.floor(Date.now() / 864e5);
 function getUser(id, name) {
   const isNew = !users[id];
   if (isNew) {
-    users[id] = { id, name, balance: START_BALANCE, games: 0, wins: 0, losses: 0, draws: 0, totalWon: 0, totalFees: 0, totalReturned: 0, wallet: null, history: [], streak: 0, lastDay: 0, referrals: 0 };
+    users[id] = { id, name, balance: START_BALANCE, games: 0, wins: 0, losses: 0, draws: 0, totalWon: 0, totalFees: 0, totalReturned: 0, wallet: null, history: [], streak: 0, lastDay: 0, referrals: 0, createdAt: Date.now() };
   }
   if (name) users[id].name = name;
   return { u: users[id], isNew };
 }
+const kycStatus = (u) => (u.kyc && u.kyc.status) || 'none';
 const publicProfile = (u) => ({
-  dailyReady: u.lastDay !== today(), streak: u.lastDay >= today() - 1 ? u.streak || 0 : 0, referrals: u.referrals || 0,
+  kyc: { status: kycStatus(u), reason: (u.kyc && u.kyc.reason) || '', attempts: (u.kyc && u.kyc.attempts) || 0 }, banned: !!u.banned,
+  dailyReady: u.lastDay !== today(), streak: u.lastDay >= today() - 1 ? u.streak || 0 : 0,
   id: u.id, name: u.name, wallet: u.wallet || null, balance: round4(u.balance), games: u.games, wins: u.wins,
   losses: u.losses, draws: u.draws, totalWon: round4(u.totalWon),
   totalFees: round4(u.totalFees || 0), totalReturned: round4(u.totalReturned || 0),
@@ -93,11 +103,10 @@ function leaderboard(uid) {
 async function prepareShare(uid, kind, amount) {
   const base = (process.env.WEBAPP_URL || process.env.RENDER_EXTERNAL_URL || '').replace(/\/$/, '');
   if (!BOT_TOKEN || !base || !uid.startsWith('tg')) return null;
-  const link = `https://t.me/${BOT_USERNAME}?start=${kind === 'challenge' ? 'ch' : 'ref'}_${uid}`;
+  const link = kind === 'challenge' ? `https://t.me/${BOT_USERNAME}?start=ch_${uid}` : `https://t.me/${BOT_USERNAME}`;
   const caption = {
     win: `🏆 I just won ${round4(Number(amount) || 0)} TON on Chess Arena! Think you can beat me?`,
     challenge: '⚔ I challenge you to a chess match on Chess Arena. Winner takes the pot!',
-    invite: '♟ Play chess for TON with me on Chess Arena. Join through my link and we both get +2 TON.',
   }[kind] || '♟ Play chess on Chess Arena';
   const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/savePreparedInlineMessage`, {
     method: 'POST', headers: { 'content-type': 'application/json' },
@@ -126,8 +135,10 @@ function charge(u, stake) { u.balance = round4(u.balance - stake); u.totalFees =
 function refund(u, stake) { u.balance = round4(u.balance + stake); u.totalFees = round4((u.totalFees || 0) - stake); }
 function precheck(uid, stake) {
   const u = users[uid];
+  if (u.banned) return 'Your account is suspended';
+  if (kycStatus(u) !== 'approved') return 'Complete identity verification (KYC) first';
   if (isBusy(uid)) return 'Game already in progress';
-  if (!u.wallet) return 'Connect your TON wallet first';
+  if (stake > 0 && !u.wallet) return 'Connect your TON wallet first';
   if (u.balance < stake) return 'Insufficient balance';
   return null;
 }
@@ -160,7 +171,10 @@ function joinQueue(uid, stake, level, invite) {
   } else {
     const entry = { uid, stake, level, endsAt: Date.now() + MATCH_WAIT_MS, timer: null };
     entry.timer = setTimeout(() => {
-      if (queues.get(stake) === entry) { queues.delete(stake); startGame(uid, 'bot', stake, level); }
+      if (queues.get(stake) !== entry) return;
+      queues.delete(stake); refund(u, stake); save(); // nobody joined: give the fee back and offer a free game vs the bot
+      send(uid, { t: 'noMatch', stake, profile: publicProfile(u) });
+      notify(uid, `😕 No opponent was available. Your ${stake} TON was refunded. Open the game to play the bot for free.`);
     }, MATCH_WAIT_MS);
     queues.set(stake, entry);
     send(uid, { t: 'queue', endsAt: entry.endsAt });
@@ -193,13 +207,13 @@ function cancelQueue(uid) {
 }
 
 // ---- game ----
-function startGame(a, b, stake, level) {
+function startGame(a, b, stake, level, practice = false) {
   const [white, black] = Math.random() < 0.5 ? [a, b] : [b, a];
   const g = {
     id: crypto.randomBytes(6).toString('hex'),
     chess: new Chess(),
     white, black,
-    stake, level: level || 'medium',
+    stake, level: level || 'medium', practice,
     pot: round4(stake * 2),
     drawFrom: null, rematch: {}, rematchTimers: {}, lastNotify: {},
     clocks: { w: CLOCK_MS, b: CLOCK_MS },
@@ -212,10 +226,11 @@ function startGame(a, b, stake, level) {
   for (const uid of [white, black]) if (uid !== 'bot') userGame.set(uid, g.id);
   broadcast(g);
   scheduleBot(g);
-  for (const uid of [white, black]) if (uid !== 'bot') notify(uid, '♟ Your match has started! Tap to play.');
+  if (!practice) for (const uid of [white, black]) if (uid !== 'bot') notify(uid, '♟ Your match has started! Tap to play.');
 }
 
 const colorOf = (g, uid) => (g.white === uid ? 'w' : g.black === uid ? 'b' : null);
+const isVerified = (uid) => uid !== 'bot' && !!users[uid] && kycStatus(users[uid]) === 'approved';
 const nameOf = (uid) => (uid === 'bot' ? 'ChessBot 🤖' : users[uid]?.name || 'Player');
 
 function snapshot(g, forUid) {
@@ -230,10 +245,10 @@ function snapshot(g, forUid) {
     return { fens, hv: g.chess.history({ verbose: true }).map((m) => ({ from: m.from, to: m.to })) };
   })() : null;
   return {
-    stake: g.stake, drawOffer: !!g.drawFrom && g.drawFrom !== you, drawSent: g.drawFrom === you, review,
+    stake: g.stake, practice: !!g.practice, drawOffer: !!g.drawFrom && g.drawFrom !== you, drawSent: g.drawFrom === you, review,
     t: 'game', id: g.id, fen: g.chess.fen(), turn: g.chess.turn(), you,
-    white: { id: g.white, name: nameOf(g.white) },
-    black: { id: g.black, name: nameOf(g.black) },
+    white: { id: g.white, name: nameOf(g.white), verified: isVerified(g.white) },
+    black: { id: g.black, name: nameOf(g.black), verified: isVerified(g.black) },
     legal, lastMove: g.lastMove, check: g.chess.isCheck(),
     pot: g.pot, prize: round4(g.pot * (1 - HOUSE_CUT)),
     clocks: g.clocks, serverNow: Date.now(),
@@ -254,6 +269,15 @@ function tickClock(g) {
 function endGame(g, winner, reason) {
   if (g.over) return;
   g.over = { winner, reason };
+  if (g.practice) { // free game vs the bot: no stats, history, claims or fees
+    g.drawFrom = null;
+    for (const uid of [g.white, g.black]) if (uid !== 'bot') userGame.delete(uid);
+    broadcast(g);
+    setTimeout(() => games.delete(g.id), 10 * 60 * 1000);
+    return;
+  }
+  gamesLog.push({ id: g.id, at: Date.now(), white: { id: g.white, name: nameOf(g.white) }, black: { id: g.black, name: nameOf(g.black) }, stake: g.stake, pot: g.pot, winner, reason, fee: winner === 'draw' ? 0 : round4(g.pot * HOUSE_CUT), moves: g.chess.history().length });
+  if (gamesLog.length > 500) gamesLog = gamesLog.slice(-500);
   g.drawFrom = null;
   const prize = round4(g.pot * (1 - HOUSE_CUT));
   for (const uid of [g.white, g.black]) {
@@ -326,6 +350,7 @@ setInterval(() => {
 
 // ---- http + ws ----
 const app = express();
+app.set('trust proxy', 1);
 app.use(express.static(path.join(__dirname, 'public')));
 // TON Connect manifest, built from the request host so it follows the tunnel URL.
 app.get('/tonconnect-manifest.json', (req, res) => {
@@ -336,6 +361,15 @@ app.get('/tonconnect-manifest.json', (req, res) => {
   res.json({ url: origin, name: 'Chess Arena', iconUrl: `${origin}/ton-icon.png` });
 });
 app.get('/health', (_req, res) => res.json({ ok: true }));
+mountAdmin(app, {
+  users, save, verifyInitData, sendProfile, send, notify: (uid, text) => notify(uid, text), round4, dataDir: DATA_DIR,
+  get gamesLog() { return gamesLog; },
+  runtime: {
+    online: (uid) => (uid ? online(uid) : [...sockets.values()].filter((w) => w.readyState === 1).length),
+    activeGames: () => [...games.values()].filter((g) => !g.over).length,
+    queued: () => queues.size + challenges.size,
+  },
+});
 const server = http.createServer(app);
 const wss = new WebSocketServer({ server, path: '/ws' });
 
@@ -350,19 +384,11 @@ wss.on('connection', (ws) => {
       // Only Telegram sessions are accepted. Set ALLOW_GUESTS=1 to test in a plain browser.
       if (!v && process.env.ALLOW_GUESTS !== '1') return ws.send(JSON.stringify({ t: 'blocked' }));
       const tgUser = v && v.user;
-      const startParam = (v && v.startParam) || String(m.startParam || '').slice(0, 40);
       const id = tgUser ? `tg${tgUser.id}` : `guest${String(m.guestId || '').replace(/\W/g, '').slice(0, 16) || 'x'}`;
       const name = tgUser ? (tgUser.first_name || tgUser.username || 'Player') : `Guest ${id.slice(-4)}`;
       uid = id;
       sockets.set(uid, ws);
-      const { u, isNew } = getUser(uid, name);
-      const ref = /^ref_(\w+)$/.exec(startParam);
-      if (isNew && ref && ref[1] !== uid && users[ref[1]]) { // referral: both sides get a bonus
-        const r = users[ref[1]];
-        u.balance = round4(u.balance + REF_BONUS); r.balance = round4(r.balance + REF_BONUS); r.referrals = (r.referrals || 0) + 1;
-        save(); sendProfile(r.id);
-        notify(r.id, `🎁 ${name} joined through your invite. +${REF_BONUS} TON added!`);
-      }
+      getUser(uid, name);
       sendProfile(uid);
       const gid = userGame.get(uid);
       const mine = [...queues.values()].find((e) => e.uid === uid) || challenges.get(uid);
@@ -374,6 +400,7 @@ wss.on('connection', (ws) => {
 
     if (m.t === 'wallet') {
       const addr = typeof m.address === 'string' && /^[A-Za-z0-9_:\-]{10,80}$/.test(m.address) ? m.address : null;
+      if (addr && kycStatus(users[uid]) !== 'approved') { send(uid, { t: 'error', msg: 'Complete identity verification (KYC) before connecting a wallet' }); return sendProfile(uid); }
       users[uid].wallet = addr;
       save();
       return sendProfile(uid);
@@ -420,6 +447,10 @@ wss.on('connection', (ws) => {
     if (m.t === 'rematch') {
       const g = games.get(String(m.gameId || ''));
       if (!g || !g.over || (g.white !== uid && g.black !== uid) || g.rematch[uid]) return;
+      if (g.practice) { // free game: just play again
+        const e = precheck(uid, 0);
+        return e ? send(uid, { t: 'error', msg: e }) : startGame(uid, 'bot', 0, g.level, true);
+      }
       const err = precheck(uid, g.stake);
       if (err) return send(uid, { t: 'error', msg: err });
       const u = users[uid], opp = g.white === uid ? g.black : g.white;
@@ -441,6 +472,10 @@ wss.on('connection', (ws) => {
       return;
     }
     if (m.t === 'cancel') return cancelQueue(uid);
+    if (m.t === 'practice') { // free game vs the bot: no stake, no wallet payment, nothing to claim
+      const e = precheck(uid, 0);
+      return e ? send(uid, { t: 'error', msg: e }) : startGame(uid, 'bot', 0, LEVELS.includes(m.level) ? m.level : 'medium', true);
+    }
 
     if (m.t === 'move') {
       const g = games.get(userGame.get(uid));

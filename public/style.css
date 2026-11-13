@@ -265,3 +265,22 @@ html[data-pieces=anarcandy] .pc.bP { background-image: url(pieces/anarcandy/bP.s
 .lb-row .nm span { font-size: 11.5px; color: var(--muted); }
 .lb-row .amt { font-weight: 700; color: var(--accent); }
 #nav button { min-width: 0; }
+
+/* KYC */
+.kyc { display: flex; flex-direction: column; gap: 12px; }
+.kyc label { display: flex; flex-direction: column; gap: 5px; font-size: 12px; color: var(--muted); font-weight: 600; }
+.kyc input:not([type=checkbox]), .kyc select { background: var(--bg); border: 1px solid var(--line); color: var(--text); border-radius: 10px; padding: 11px 12px; font: 15px system-ui; width: 100%; }
+.kyc input[type=file] { padding: 9px 10px; font-size: 13px; }
+.kyc .chk { flex-direction: row; align-items: flex-start; gap: 10px; font-weight: 400; line-height: 1.4; }
+.kyc .chk input { margin-top: 2px; width: 18px; height: 18px; accent-color: var(--accent); }
+.kyc .pv { width: 100%; max-height: 150px; object-fit: cover; border-radius: 10px; margin-top: 8px; border: 1px solid var(--line); }
+.kyc .err, .err { background: rgba(255,107,122,.12); color: var(--danger); border-radius: 10px; padding: 10px 12px; font-size: 13px; }
+.kstate { text-align: center; padding: 18px 8px; } .kstate .big { font-size: 44px; } .kstate h3 { margin: 8px 0 4px; } .kstate p { color: var(--muted); margin: 4px 0 14px; }
+
+/* KYC status badge */
+.kbadge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 9px; border-radius: 999px; font: 700 11px system-ui; vertical-align: middle; margin-left: 4px; background: var(--panel2); color: var(--muted); }
+.kbadge.ok { background: rgba(76,208,138,.16); color: #4cd08a; }
+.kbadge.pend { background: rgba(240,179,90,.16); color: #f0b35a; cursor: pointer; }
+.kbadge.no { background: rgba(255,107,122,.14); color: var(--danger); cursor: pointer; }
+.pinfo .kbadge { margin: 3px 0 2px; align-self: flex-start; }
+.vt { color: #4cd08a; font-size: 12px; margin-left: 3px; }

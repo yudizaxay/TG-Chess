@@ -151,3 +151,7 @@ vite.config.ts.timestamp-*
 # runtime data
 data.json
 bot-state.json
+
+# KYC documents and game logs (personal data, never commit)
+kyc/
+games.json

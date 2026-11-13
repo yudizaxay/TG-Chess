@@ -16,7 +16,8 @@
     <div id="tonBtn"></div>
   </header>
   <div class="hero">
-    <div class="hello">Welcome, <b id="userName">Player</b></div>
+    <div class="hello">Welcome, <b id="userName">Player</b> <span class="kbadge" id="kBadge"></span></div>
+    <div id="kycCard" class="daily hidden"><div><b id="kycTitle">Verify your identity</b><span class="muted small" id="kycSub">KYC is required before you can connect a wallet and play</span></div><button class="btn small primary" id="kycOpen">Start</button></div>
     <div class="bal"><img src="ton.svg" class="ton-ico" alt="TON"><div class="bal-t"><span>Demo balance</span><b><span id="balance">0.00</span> TON</b></div><div class="bal-s" id="balState">Wallet not connected</div></div>
     <div id="challengeBox" class="daily hidden"><div><b id="chTitle">Challenge</b><span id="chSub" class="muted small"></span></div><button class="btn small primary" id="chAccept">Accept</button></div>
     <div id="dailyBox" class="daily hidden"><div><b>Daily bonus</b><span class="muted small" id="dailySub">Claim free test TON</span></div><button class="btn small primary" id="dailyBtn">Claim</button></div>
@@ -28,12 +29,11 @@
       <div class="sub">Entry <span id="feeLabel">0.01</span> TON · Pot <span id="potLabel">0.02</span> TON · 5% platform fee</div>
     </div>
     <button class="btn primary" id="playBtn"><span id="playLbl">Play for</span> <span id="feeBtn">1</span> TON</button>
-    <div class="hint">No opponent in 40s? You'll be matched with our bot.</div>
-    <div class="chips-label">Bot level (if no opponent)</div>
+    <div class="hint">No opponent in 40s? Your entry fee is refunded and you can play our bot for free.</div>
+    <div class="chips-label">Bot level (free practice game)</div>
     <div class="chips" id="levelChips"></div>
     <div class="two">
       <button class="btn ghost" id="challengeBtn">⚔ Challenge a friend</button>
-      <button class="btn ghost" id="inviteBtn">🎁 Invite · +2 TON</button>
     </div>
   </div>
   <div class="stats">
@@ -72,7 +72,7 @@
   <header class="top"><div class="brand">Leaderboard</div></header>
   <div class="income"><div class="label">Your rank</div><div class="big" id="myRank">-</div><div class="sub" id="myRankSub">Play a game to get ranked</div></div>
   <div class="panel"><h3>Top players <span class="muted small">by TON won</span></h3><div id="lbList" class="history"><div class="empty">No ranked players yet</div></div></div>
-  <div class="panel"><h3>Invites</h3><div class="set-row"><span>Friends joined</span><b id="refCount">0</b></div><div class="set-row"><span>Daily streak</span><b id="streakCount">0 days</b></div></div>
+  <div class="panel"><h3>Daily bonus</h3><div class="set-row"><span>Daily streak</span><b id="streakCount">0 days</b></div></div>
 </section>
 
 <!-- SETTINGS -->
@@ -80,7 +80,7 @@
   <header class="top"><div class="brand">Settings</div></header>
   <div class="panel profile">
     <div class="avatar me big" id="sAvatar">A</div>
-    <div class="pinfo"><b id="sName">Player</b><span class="muted small mono" id="sAddr">No wallet connected</span></div>
+    <div class="pinfo"><b id="sName">Player</b><span class="kbadge" id="sBadge"></span><span class="muted small mono" id="sAddr">No wallet connected</span></div>
     <button class="btn small ghost2" id="copyAddr">Copy</button>
   </div>
 
@@ -102,6 +102,7 @@
 
   <div class="panel">
     <h3>Wallet (demo)</h3>
+    <div class="set-row"><span>Identity (KYC)</span><b id="setKyc">Not verified</b></div>
     <div class="set-row"><span>TON wallet</span><b id="setWalletState">Not connected</b></div>
     <div class="set-row"><span>Address</span><span class="mono small" id="setWalletAddr">-</span></div>
     <div class="set-row"><span>Network</span><b>TON (demo payments)</b></div>
@@ -114,13 +115,33 @@
   <div class="muted small" style="text-align:center;margin-top:12px">Chess Arena · demo build · pieces by Colin M.L. Burnett</div>
 </section>
 
+<!-- KYC -->
+<section id="kycScreen" class="screen">
+  <header class="top"><button class="btn small ghost2" id="kycBack">‹ Back</button><div class="brand">Identity verification</div><span style="width:60px"></span></header>
+  <div id="kycState" class="panel hidden"></div>
+  <form id="kycForm" class="panel kyc" autocomplete="off" novalidate>
+    <p class="muted small">Required by our compliance rules before you can use a wallet and play for crypto. Your details are used only to verify your identity and are reviewed by our team.</p>
+    <label>Full name (as on the document)<input id="kName" maxlength="80" required></label>
+    <label>Date of birth<input id="kDob" type="date" required></label>
+    <label>Country<input id="kCountry" maxlength="60" required></label>
+    <label>Document type<select id="kType"><option value="passport">Passport</option><option value="national_id">National ID card</option><option value="driving_licence">Driving licence</option></select></label>
+    <label>Document number<input id="kNumber" maxlength="30" required></label>
+    <div class="upl"><label>Document photo (front)<input id="kFront" type="file" accept="image/*"></label><img id="pvFront" class="pv hidden" alt=""></div>
+    <div class="upl"><label>Document photo (back, optional)<input id="kBack" type="file" accept="image/*"></label><img id="pvBack" class="pv hidden" alt=""></div>
+    <div class="upl"><label>Selfie holding the document<input id="kSelfie" type="file" accept="image/*" capture="user"></label><img id="pvSelfie" class="pv hidden" alt=""></div>
+    <label class="chk"><input id="kConsent" type="checkbox"> <span>I am at least 18, the information is true, and I agree to my details and photos being processed for identity verification.</span></label>
+    <div class="err hidden" id="kErr"></div>
+    <button class="btn primary" id="kSubmit" type="submit">Submit for verification</button>
+  </form>
+</section>
+
 <!-- SEARCHING -->
 <section id="searching" class="screen">
   <div class="center">
     <div class="radar"><div></div><div></div><div></div></div>
     <h2>Finding opponent…</h2>
     <div class="count"><span id="countdown">40</span>s</div>
-    <p class="muted" id="searchNote">Bot joins if nobody shows up</p>
+    <p class="muted" id="searchNote">If nobody joins, your fee is refunded</p>
     <button class="btn primary hidden" id="shareChallenge">Share challenge link</button>
     <button class="btn ghost" id="cancelBtn">Cancel &amp; refund</button>
     <div class="styles">
@@ -172,6 +193,18 @@
   </button>
 </nav>
 
+<!-- NO MATCH -->
+<div id="noMatch" class="overlay hidden">
+  <div class="card">
+    <div class="res-icon">😕</div>
+    <h2>No players available</h2>
+    <p class="muted" id="noMatchText">Nobody is online for a match right now. Your entry fee was refunded.</p>
+    <p class="muted small">Want to play against our bot instead? It is a free game: no coins, nothing to win or lose.</p>
+    <button class="btn primary" id="practiceYes">Play free vs bot</button>
+    <button class="btn ghost" id="practiceNo">Not now</button>
+  </div>
+</div>
+
 <!-- RESULT -->
 <div id="result" class="overlay hidden">
   <div class="card">
@@ -203,7 +236,7 @@
 <div id="openTg" class="overlay hidden"><div class="card">
   <div class="res-icon">♞</div><h2>Open in Telegram</h2>
   <p class="muted">Chess Arena runs inside Telegram. Open the bot and tap Play.</p>
-  <a class="btn primary" href="https://t.me/ytgchess_bot" style="text-decoration:none;display:block">Open @ytgchess_bot</a>
+  <a class="btn primary" href="https://t.me/ytchesstest_bot" style="text-decoration:none;display:block">Open @ytchesstest_bot</a>
 </div></div>
 <div id="toast" class="toast hidden"></div>
 <script src="vendor/tonconnect-ui.min.js"></script>
